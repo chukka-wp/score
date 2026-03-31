@@ -8,11 +8,7 @@ createInertiaApp({
     progress: {
         color: '#3b82f6',
     },
-    setup({ App, props }) {
-        return (
-            <TooltipProvider delayDuration={300}>
-                <App {...props} />
-            </TooltipProvider>
-        );
+    withApp(app) {
+        return <TooltipProvider delayDuration={300}>{app}</TooltipProvider>;
     },
 });
