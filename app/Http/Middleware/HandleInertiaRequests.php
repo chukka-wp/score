@@ -35,11 +35,17 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $isManager = $request->session()->has('cloud_token');
+        $isScorer = $request->session()->has('scorer_token');
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $isManager ? $request->session()->get('cloud_user') : null,
+                'isManager' => $isManager,
+                'isScorer' => $isScorer,
+                'scorerMatchId' => $request->session()->get('scorer_match_id'),
             ],
         ];
     }

@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\CloudApiService;
+use App\Services\TokenService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +17,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(CloudApiService::class);
+
+        $this->app->singleton(TokenService::class, function ($app) {
+            return new TokenService($app->make(CloudApiService::class));
+        });
     }
 
     /**

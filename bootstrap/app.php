@@ -1,6 +1,11 @@
 <?php
 
+use App\Exceptions\CloudAuthenticationException;
+use App\Exceptions\CloudValidationException;
+use App\Http\Middleware\EnsureManagerAuth;
+use App\Http\Middleware\EnsureScorerAuth;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Services\TokenService;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -9,6 +14,7 @@ use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
@@ -17,7 +23,31 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        $middleware->alias([
+            'manager' => EnsureManagerAuth::class,
+            'scorer' => EnsureScorerAuth::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->renderable(function (CloudAuthenticationException $e) {
+            if (request()->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 401);
+            }
+
+            app(TokenService::class)->clearManagerSession();
+
+            return redirect()->route('login')->with('error', 'Your session has expired.');
+        });
+
+        $exceptions->renderable(function (CloudValidationException $e) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                    'errors' => $e->errors,
+                ], 422);
+            }
+
+            return back()->withErrors($e->errors)->withInput();
+        });
     })->create();

@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'chukka' => [
+        'cloud_url' => env('CHUKKA_CLOUD_URL', 'https://chukka.app'),
+        'api_prefix' => '/api/v1',
+        'timeout' => 10,
+        'connect_timeout' => 5,
+    ],
+
 ];

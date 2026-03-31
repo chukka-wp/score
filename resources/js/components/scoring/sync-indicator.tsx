@@ -1,0 +1,50 @@
+import { cn } from '@/lib/utils';
+
+import type { SyncStatus } from '@/types';
+
+type Props = {
+    status: SyncStatus;
+    pendingCount: number;
+};
+
+const STATUS_COLORS: Record<SyncStatus, string> = {
+    online: 'bg-sync-online',
+    syncing: 'bg-sync-syncing',
+    offline: 'bg-sync-offline',
+};
+
+const STATUS_TEXT_COLORS: Record<SyncStatus, string> = {
+    online: 'text-sync-online',
+    syncing: 'text-sync-syncing',
+    offline: 'text-sync-offline',
+};
+
+function statusLabel(status: SyncStatus, pendingCount: number): string {
+    if (status === 'syncing') {
+        return `Syncing ${pendingCount} event${pendingCount !== 1 ? 's' : ''}...`;
+    }
+
+    if (status === 'offline') {
+        return `Offline \u2014 ${pendingCount} queued`;
+    }
+
+    return 'Online';
+}
+
+export function SyncIndicator({ status, pendingCount }: Props) {
+    return (
+        <div className="fixed right-4 bottom-4 z-50 flex items-center gap-2 rounded-lg bg-card px-3 py-1.5 shadow-sm ring-1 ring-border">
+            <div
+                className={cn(
+                    'size-2 rounded-full',
+                    STATUS_COLORS[status],
+                    status === 'syncing' && 'animate-pulse',
+                )}
+            />
+
+            <span className={cn('text-xs font-medium', STATUS_TEXT_COLORS[status])}>
+                {statusLabel(status, pendingCount)}
+            </span>
+        </div>
+    );
+}
