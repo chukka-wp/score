@@ -66,9 +66,11 @@ function AppSidebar() {
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
                             <Link href="/admin">
-                                <div className="bg-primary text-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold">
-                                    C
-                                </div>
+                                <img
+                                    src="/images/logo-icon-96.png"
+                                    alt="Chukka"
+                                    className="size-8 shrink-0 rounded-lg object-contain"
+                                />
                                 <div className="grid flex-1 text-left text-sm leading-tight">
                                     <span className="truncate font-semibold">Chukka</span>
                                     <span className="text-muted-foreground truncate text-xs">Score</span>
