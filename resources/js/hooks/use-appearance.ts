@@ -5,6 +5,10 @@ type Appearance = 'light' | 'dark';
 const STORAGE_KEY = 'chukka-appearance';
 const DEFAULT: Appearance = 'dark';
 
+function applyAppearance(mode: Appearance): void {
+    document.documentElement.classList.toggle('dark', mode === 'dark');
+}
+
 function getStored(): Appearance {
     if (typeof window === 'undefined') {
         return DEFAULT;
@@ -21,6 +25,11 @@ export function useAppearance(): [Appearance, (mode: Appearance) => void] {
     const setAppearance = useCallback((mode: Appearance) => {
         setAppearanceState(mode);
         localStorage.setItem(STORAGE_KEY, mode);
+        applyAppearance(mode);
+    }, []);
+
+    useEffect(() => {
+        applyAppearance(appearance);
     }, []);
 
     return [appearance, setAppearance];

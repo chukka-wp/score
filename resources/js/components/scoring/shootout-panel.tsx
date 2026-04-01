@@ -19,6 +19,7 @@ type ShootoutState = {
 
 type Props = {
     shootoutState: ShootoutState | null;
+    homeTeamId: string;
 };
 
 const OUTCOME_SYMBOLS: Record<string, string> = {
@@ -33,12 +34,13 @@ const OUTCOME_COLORS: Record<string, string> = {
     saved: 'text-muted-foreground',
 };
 
-export function ShootoutPanel({ shootoutState }: Props) {
+export function ShootoutPanel({ shootoutState, homeTeamId }: Props) {
     if (!shootoutState) {
         return null;
     }
 
     const { home_score, away_score, current_round, shots, next_shooting_team } = shootoutState;
+    const teamLabel = (teamId: string) => teamId === homeTeamId ? 'White' : 'Blue';
 
     // Group shots by round for display
     const maxRound = Math.max(current_round, ...shots.map((s) => s.round));
@@ -102,7 +104,7 @@ export function ShootoutPanel({ shootoutState }: Props) {
 
             {/* Next shooting indicator */}
             <div className="mt-3 text-xs text-muted-foreground">
-                Next: <span className="font-medium uppercase">{next_shooting_team}</span>
+                Next: <span className="font-medium uppercase">{teamLabel(next_shooting_team)}</span>
             </div>
         </div>
     );

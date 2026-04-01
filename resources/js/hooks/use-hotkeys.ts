@@ -8,12 +8,15 @@ type EventEntryActions = {
     deleteDigit: () => void;
     setTeam: (team: TeamSide) => void;
     setOutcome: (outcome: string) => void;
+    advanceFromCap: () => boolean;
+    stepBack: () => void;
     confirm: () => void;
     cancel: () => void;
     undo: () => void;
     state: {
         step: string;
         eventType: EventType | null;
+        capNumber: string;
     };
 };
 
@@ -37,6 +40,7 @@ export function useHotkeys(
     isShootoutMode: boolean,
     modals: ModalActions,
     ruleSet: { possession_time_seconds: number; second_possession_time_seconds: number },
+    sidesSwapped: boolean,
 ): void {
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
@@ -79,7 +83,20 @@ export function useHotkeys(
                 return;
             }
 
-            // Awaiting cap: digits + backspace
+            // Backspace: step back through the flow (or delete digit during cap entry)
+            if (e.key === 'Backspace') {
+                e.preventDefault();
+
+                if (step === 'awaiting_cap' && eventEntry.state.capNumber.length > 0) {
+                    eventEntry.deleteDigit();
+                } else if (step !== 'idle') {
+                    eventEntry.stepBack();
+                }
+
+                return;
+            }
+
+            // Awaiting cap: digits, Enter to advance, W/B to auto-advance + set team
             if (step === 'awaiting_cap') {
                 if (e.key >= '0' && e.key <= '9') {
                     e.preventDefault();
@@ -88,22 +105,36 @@ export function useHotkeys(
                     return;
                 }
 
-                if (e.key === 'Backspace') {
+                if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    eventEntry.deleteDigit();
+                    eventEntry.advanceFromCap();
 
                     return;
                 }
 
-                if (e.key === 'Enter' || e.key === ' ') {
+                // W/B during cap entry: advance cap + set team in one keystroke
+                if (e.key.toLowerCase() === 'w' || e.key.toLowerCase() === 'a') {
                     e.preventDefault();
-                    eventEntry.confirm();
+
+                    if (eventEntry.advanceFromCap()) {
+                        eventEntry.setTeam('white');
+                    }
+
+                    return;
+                }
+
+                if (e.key.toLowerCase() === 'b' || e.key.toLowerCase() === 'h') {
+                    e.preventDefault();
+
+                    if (eventEntry.advanceFromCap()) {
+                        eventEntry.setTeam('blue');
+                    }
 
                     return;
                 }
             }
 
-            // Awaiting team: W/B/H/A
+            // Awaiting team: W/B/A/H
             if (step === 'awaiting_team') {
                 switch (e.key.toLowerCase()) {
                     case 'w':
@@ -239,16 +270,18 @@ export function useHotkeys(
                     return;
                 }
 
-                if (e.key === 'ArrowLeft') {
+                // Arrow keys: direction of play. Right arrow = left team has possession.
+                // When sides are swapped, the left/right team mapping is inverted.
+                if (e.key === 'ArrowRight') {
                     e.preventDefault();
-                    clockControl.setPossession('white');
+                    clockControl.setPossession(sidesSwapped ? 'blue' : 'white');
 
                     return;
                 }
 
-                if (e.key === 'ArrowRight') {
+                if (e.key === 'ArrowLeft') {
                     e.preventDefault();
-                    clockControl.setPossession('blue');
+                    clockControl.setPossession(sidesSwapped ? 'white' : 'blue');
 
                     return;
                 }
@@ -279,5 +312,5 @@ export function useHotkeys(
         document.addEventListener('keydown', handleKeyDown);
 
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [eventEntry, clockControl, gameState, isShootoutMode, modals, ruleSet]);
+    }, [eventEntry, clockControl, gameState, isShootoutMode, modals, ruleSet, sidesSwapped]);
 }

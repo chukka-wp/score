@@ -46,6 +46,8 @@ export function TimingCorrectionModal({
 }: Props) {
     const [periodValue, setPeriodValue] = useState('');
     const [possessionValue, setPossessionValue] = useState('');
+    const [periodError, setPeriodError] = useState('');
+    const [possessionError, setPossessionError] = useState('');
 
     useEffect(() => {
         if (open) {
@@ -53,14 +55,21 @@ export function TimingCorrectionModal({
             setPossessionValue(
                 possessionClockSeconds !== null ? String(possessionClockSeconds) : '',
             );
+            setPeriodError('');
+            setPossessionError('');
         }
     }, [open, periodClockSeconds, possessionClockSeconds]);
 
     function handleApply(): void {
+        let hasError = false;
+
         const newPeriod = mmssToSeconds(periodValue);
 
         if (newPeriod === null) {
-            return;
+            setPeriodError('Enter time as MM:SS (e.g. 08:00)');
+            hasError = true;
+        } else {
+            setPeriodError('');
         }
 
         const newPossession = possessionValue.trim() === ''
@@ -68,6 +77,13 @@ export function TimingCorrectionModal({
             : parseInt(possessionValue, 10);
 
         if (newPossession !== null && isNaN(newPossession)) {
+            setPossessionError('Enter seconds as a number');
+            hasError = true;
+        } else {
+            setPossessionError('');
+        }
+
+        if (hasError || newPeriod === null) {
             return;
         }
 
@@ -92,6 +108,7 @@ export function TimingCorrectionModal({
                             placeholder="08:00"
                             className="font-mono tabular-nums"
                         />
+                        {periodError && <p className="text-sm text-destructive">{periodError}</p>}
                     </div>
 
                     <div className="space-y-2">
@@ -103,6 +120,7 @@ export function TimingCorrectionModal({
                             placeholder="28"
                             className="font-mono tabular-nums"
                         />
+                        {possessionError && <p className="text-sm text-destructive">{possessionError}</p>}
                     </div>
                 </div>
 

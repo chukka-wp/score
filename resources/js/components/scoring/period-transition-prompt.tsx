@@ -18,7 +18,6 @@ type Props = {
 export function PeriodTransitionPrompt({ open, onClose, currentPeriod, onConfirm }: Props) {
     function handleConfirm(): void {
         onConfirm();
-        onClose();
     }
 
     return (

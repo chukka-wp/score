@@ -11,9 +11,10 @@ type Exclusion = {
 type Props = {
     exclusions: Exclusion[];
     homeTeamId: string;
+    sidesSwapped: boolean;
 };
 
-export function ExclusionPanel({ exclusions, homeTeamId }: Props) {
+export function ExclusionPanel({ exclusions, homeTeamId, sidesSwapped }: Props) {
     const homeExclusions = exclusions.filter((e) => e.team_id === homeTeamId);
     const awayExclusions = exclusions.filter((e) => e.team_id !== homeTeamId);
 
@@ -23,19 +24,19 @@ export function ExclusionPanel({ exclusions, homeTeamId }: Props) {
 
     return (
         <div className="grid grid-cols-2 gap-4 rounded-lg bg-card p-3 animate-in fade-in slide-in-from-top-1 duration-200">
-            {/* White (home) exclusions */}
+            {/* Left side */}
             <div className="space-y-2">
-                <div className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    White
+                <div className="font-mono text-xs font-medium uppercase tracking-wide text-foreground">
+                    {sidesSwapped ? 'Blue' : 'White'}
                 </div>
-                {homeExclusions.length === 0 ? (
+                {(sidesSwapped ? awayExclusions : homeExclusions).length === 0 ? (
                     <div className="text-xs text-muted-foreground/50">None</div>
                 ) : (
-                    homeExclusions.map((ex) => (
+                    (sidesSwapped ? awayExclusions : homeExclusions).map((ex) => (
                         <ExclusionTimer
                             key={ex.player_id}
                             capNumber={ex.cap_number}
-                            teamSide="white"
+                            teamSide={sidesSwapped ? 'blue' : 'white'}
                             displaySeconds={ex.display_seconds}
                             exclusionType={ex.exclusion_type}
                         />
@@ -43,19 +44,19 @@ export function ExclusionPanel({ exclusions, homeTeamId }: Props) {
                 )}
             </div>
 
-            {/* Blue (away) exclusions */}
+            {/* Right side */}
             <div className="space-y-2">
-                <div className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Blue
+                <div className="font-mono text-xs font-medium uppercase tracking-wide text-foreground">
+                    {sidesSwapped ? 'White' : 'Blue'}
                 </div>
-                {awayExclusions.length === 0 ? (
+                {(sidesSwapped ? homeExclusions : awayExclusions).length === 0 ? (
                     <div className="text-xs text-muted-foreground/50">None</div>
                 ) : (
-                    awayExclusions.map((ex) => (
+                    (sidesSwapped ? homeExclusions : awayExclusions).map((ex) => (
                         <ExclusionTimer
                             key={ex.player_id}
                             capNumber={ex.cap_number}
-                            teamSide="blue"
+                            teamSide={sidesSwapped ? 'white' : 'blue'}
                             displaySeconds={ex.display_seconds}
                             exclusionType={ex.exclusion_type}
                         />

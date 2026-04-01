@@ -16,6 +16,10 @@ type Props = {
     foulLimit: number;
     onPlayerAction: (type: EventType, capNumber: number, team: 'white' | 'blue') => void;
     onTeamAction: (type: EventType, team: 'white' | 'blue') => void;
+    onToggleInWater: (playerId: string, capNumber: number, team: 'white' | 'blue', action: 'sub_on' | 'sub_off') => void;
+    homeInWaterIds: Set<string>;
+    awayInWaterIds: Set<string>;
+    sidesSwapped: boolean;
 };
 
 type PlayerRow = {
@@ -23,6 +27,7 @@ type PlayerRow = {
     cap_number: number;
     name: string;
     isGoalkeeper: boolean;
+    isInWater: boolean;
     goals: number;
     fouls: number;
     isFouledOut: boolean;
@@ -52,6 +57,7 @@ function derivePlayerRows(
     excludedForGame: UUID[],
     foulLimit: number,
     team: 'white' | 'blue',
+    inWaterIds: Set<string>,
 ): PlayerRow[] {
     const goalCounts = new Map<number, number>();
     const exclusionCounts = new Map<number, number>();
@@ -101,6 +107,7 @@ function derivePlayerRows(
                 cap_number: entry.cap_number,
                 name: entry.player?.preferred_name ?? entry.player?.name ?? '',
                 isGoalkeeper: entry.role === 'goalkeeper' || entry.role === 'substitute_goalkeeper',
+                isInWater: inWaterIds.has(entry.player_id),
                 goals: goalCounts.get(entry.cap_number) ?? 0,
                 fouls,
                 isFouledOut: fouls >= foulLimit && excludedForGame.includes(entry.player_id),
@@ -122,7 +129,7 @@ function FoulDots({ fouls, limit }: { fouls: number; limit: number }) {
                 <div
                     key={i}
                     className={cn(
-                        'size-1.5 rounded-full',
+                        'size-2 rounded-full',
                         i < fouls
                             ? fouls >= limit
                                 ? 'bg-destructive'
@@ -145,7 +152,7 @@ function ExclusionBadge({ exclusion }: { exclusion: ExclusionTimerEntry }) {
         <span
             className={cn(
                 'ml-auto font-mono text-xs font-semibold tabular-nums',
-                isUrgent ? 'animate-pulse text-exclusion-urgent' : 'text-amber-600 dark:text-amber-400',
+                isUrgent ? 'animate-pulse text-exclusion-urgent' : 'text-exclusion',
             )}
         >
             {formatShortClock(seconds)}
@@ -162,6 +169,7 @@ function TeamSection({
     onSelectCap,
     onPlayerAction,
     onTeamAction,
+    onToggleInWater,
 }: {
     team: 'white' | 'blue';
     players: PlayerRow[];
@@ -171,24 +179,21 @@ function TeamSection({
     onSelectCap: (cap: number | null) => void;
     onPlayerAction: (type: EventType, capNumber: number) => void;
     onTeamAction: (type: EventType) => void;
+    onToggleInWater: (playerId: string, capNumber: number) => void;
 }) {
     return (
         <div className="flex flex-col">
             {/* Team header */}
             <div className="flex items-center justify-between px-2 pb-1.5">
-                <div
-                    className={cn(
-                        'font-mono text-xs font-medium uppercase tracking-wide',
-                        team === 'white' ? 'text-team-white-foreground' : 'text-team-blue-foreground',
-                    )}
-                >
+                <div className="font-mono text-xs font-medium uppercase tracking-wide text-foreground">
                     {team === 'white' ? 'White' : 'Blue'}
                 </div>
                 <div className="font-mono text-sm font-semibold tabular-nums">{teamScore}</div>
             </div>
 
             {/* Column headers */}
-            <div className="grid grid-cols-[2.5rem_1fr_1.5rem_auto] items-center gap-x-2 border-b border-border/50 px-2 pb-1 text-xs text-muted-foreground">
+            <div className="grid grid-cols-[1.25rem_2rem_1fr_1.5rem_auto] items-center gap-x-1.5 border-b border-border/50 px-2 pb-1 text-xs text-muted-foreground">
+                <div />
                 <div className="font-mono">#</div>
                 <div>Name</div>
                 <div className="text-center font-mono">G</div>
@@ -207,9 +212,10 @@ function TeamSection({
                             <div
                                 role="button"
                                 tabIndex={0}
+                                data-cap={player.cap_number}
                                 className={cn(
-                                    'grid cursor-pointer grid-cols-[2.5rem_1fr_1.5rem_auto] items-center gap-x-2 rounded px-2 py-1',
-                                    isExcluded && 'bg-amber-500/10 ring-1 ring-amber-500/20',
+                                    'grid cursor-pointer grid-cols-[1.25rem_2rem_1fr_1.5rem_auto] items-center gap-x-1.5 rounded px-2 py-1 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none',
+                                    isExcluded && 'bg-exclusion/10 ring-1 ring-exclusion/20',
                                     isSelected && !isExcluded && 'bg-muted',
                                     isOut && 'bg-destructive/5 opacity-40',
                                     !isSelected && !isOut && !isExcluded && 'hover:bg-muted/50',
@@ -222,11 +228,36 @@ function TeamSection({
                                     }
                                 }}
                             >
+                                {/* In-water indicator */}
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onToggleInWater(player.player_id, player.cap_number);
+                                    }}
+                                    className={cn(
+                                        'flex size-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
+                                        player.isInWater
+                                            ? 'border-primary bg-primary'
+                                            : 'border-muted-foreground/30 bg-transparent hover:border-muted-foreground/50',
+                                    )}
+                                    aria-label={player.isInWater ? 'In water — click to sub off' : 'On bench — click to sub on'}
+                                />
+
                                 {/* Cap number */}
-                                <div className="font-mono text-sm tabular-nums">{player.cap_number}</div>
+                                <div className={cn(
+                                    'font-mono text-sm tabular-nums',
+                                    !player.isInWater && !isOut && 'text-muted-foreground',
+                                )}>
+                                    {player.cap_number}
+                                </div>
 
                                 {/* Name + exclusion timer */}
-                                <div className={cn('flex items-center gap-1 truncate text-sm', isOut && 'line-through')}>
+                                <div className={cn(
+                                    'flex items-center gap-1 truncate text-sm',
+                                    isOut && 'line-through',
+                                    !player.isInWater && !isOut && 'text-muted-foreground',
+                                )}>
                                     <span className="truncate">
                                         {player.name || `Player ${player.cap_number}`}
                                         {player.isGoalkeeper && (
@@ -252,12 +283,23 @@ function TeamSection({
 
                             {/* Action bar (expanded) */}
                             {isSelected && !isOut && (
-                                <div className="flex flex-wrap gap-1 px-2 pt-0.5 pb-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
-                                    {PLAYER_ACTIONS.map((action) => (
+                                <div
+                                    className="flex flex-wrap gap-1 px-2 pt-0.5 pb-1.5 animate-in fade-in slide-in-from-top-1 duration-150"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Escape') {
+                                            e.stopPropagation();
+                                            onSelectCap(null);
+                                            const row = e.currentTarget.previousElementSibling as HTMLElement | null;
+                                            row?.focus();
+                                        }
+                                    }}
+                                >
+                                    {PLAYER_ACTIONS.map((action, idx) => (
                                         <Button
                                             key={action.type}
                                             variant={action.variant}
                                             size="xs"
+                                            autoFocus={idx === 0}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 onPlayerAction(action.type, player.cap_number);
@@ -273,16 +315,6 @@ function TeamSection({
                     );
                 })}
             </div>
-
-            {/* Team-level actions */}
-            <div className="flex gap-1.5 border-t border-border/50 px-2 pt-2">
-                <Button variant="secondary" size="xs" className="flex-1" onClick={() => onTeamAction('timeout_start')}>
-                    Timeout
-                </Button>
-                <Button variant="secondary" size="xs" className="flex-1" onClick={() => onTeamAction('substitution')}>
-                    Sub
-                </Button>
-            </div>
         </div>
     );
 }
@@ -296,6 +328,10 @@ export function ScoresheetPanel({
     foulLimit,
     onPlayerAction,
     onTeamAction,
+    onToggleInWater,
+    homeInWaterIds,
+    awayInWaterIds,
+    sidesSwapped,
 }: Props) {
     const [selectedWhiteCap, setSelectedWhiteCap] = useState<number | null>(null);
     const [selectedBlueCap, setSelectedBlueCap] = useState<number | null>(null);
@@ -310,8 +346,9 @@ export function ScoresheetPanel({
                 gameState.players_excluded_for_game,
                 foulLimit,
                 'white',
+                homeInWaterIds,
             ),
-        [homeRoster, events, gameState.player_foul_counts, exclusionTimers, gameState.players_excluded_for_game, foulLimit],
+        [homeRoster, events, gameState.player_foul_counts, exclusionTimers, gameState.players_excluded_for_game, foulLimit, homeInWaterIds],
     );
 
     const awayPlayers = useMemo(
@@ -324,8 +361,9 @@ export function ScoresheetPanel({
                 gameState.players_excluded_for_game,
                 foulLimit,
                 'blue',
+                awayInWaterIds,
             ),
-        [awayRoster, events, gameState.player_foul_counts, exclusionTimers, gameState.players_excluded_for_game, foulLimit],
+        [awayRoster, events, gameState.player_foul_counts, exclusionTimers, gameState.players_excluded_for_game, foulLimit, awayInWaterIds],
     );
 
     const handleWhiteAction = useCallback(
@@ -340,6 +378,22 @@ export function ScoresheetPanel({
 
     const handleWhiteTeam = useCallback((type: EventType) => onTeamAction(type, 'white'), [onTeamAction]);
     const handleBlueTeam = useCallback((type: EventType) => onTeamAction(type, 'blue'), [onTeamAction]);
+
+    const handleWhiteToggle = useCallback(
+        (playerId: string, capNumber: number) => {
+            const action = homeInWaterIds.has(playerId) ? 'sub_off' : 'sub_on';
+            onToggleInWater(playerId, capNumber, 'white', action);
+        },
+        [homeInWaterIds, onToggleInWater],
+    );
+
+    const handleBlueToggle = useCallback(
+        (playerId: string, capNumber: number) => {
+            const action = awayInWaterIds.has(playerId) ? 'sub_off' : 'sub_on';
+            onToggleInWater(playerId, capNumber, 'blue', action);
+        },
+        [awayInWaterIds, onToggleInWater],
+    );
 
     const handleSelectWhite = useCallback(
         (cap: number | null) => {
@@ -363,31 +417,57 @@ export function ScoresheetPanel({
         [],
     );
 
+    const leftTeam = sidesSwapped ? 'blue' : 'white';
+    const rightTeam = sidesSwapped ? 'white' : 'blue';
+
+    const leftPlayers = leftTeam === 'white' ? homePlayers : awayPlayers;
+    const rightPlayers = rightTeam === 'white' ? homePlayers : awayPlayers;
+
+    const leftScore = leftTeam === 'white' ? gameState.home_score : gameState.away_score;
+    const rightScore = rightTeam === 'white' ? gameState.home_score : gameState.away_score;
+
+    const leftSelectedCap = leftTeam === 'white' ? selectedWhiteCap : selectedBlueCap;
+    const rightSelectedCap = rightTeam === 'white' ? selectedWhiteCap : selectedBlueCap;
+
+    const leftSelectCap = leftTeam === 'white' ? handleSelectWhite : handleSelectBlue;
+    const rightSelectCap = rightTeam === 'white' ? handleSelectWhite : handleSelectBlue;
+
+    const leftPlayerAction = leftTeam === 'white' ? handleWhiteAction : handleBlueAction;
+    const rightPlayerAction = rightTeam === 'white' ? handleWhiteAction : handleBlueAction;
+
+    const leftTeamAction = leftTeam === 'white' ? handleWhiteTeam : handleBlueTeam;
+    const rightTeamAction = rightTeam === 'white' ? handleWhiteTeam : handleBlueTeam;
+
+    const leftToggle = leftTeam === 'white' ? handleWhiteToggle : handleBlueToggle;
+    const rightToggle = rightTeam === 'white' ? handleWhiteToggle : handleBlueToggle;
+
     return (
         <div className="grid h-full grid-cols-[1fr_1px_1fr] gap-x-3 rounded-lg bg-card p-3">
             <TeamSection
-                team="white"
-                players={homePlayers}
-                teamScore={gameState.home_score}
+                team={leftTeam}
+                players={leftPlayers}
+                teamScore={leftScore}
                 foulLimit={foulLimit}
-                selectedCap={selectedWhiteCap}
-                onSelectCap={handleSelectWhite}
-                onPlayerAction={handleWhiteAction}
-                onTeamAction={handleWhiteTeam}
+                selectedCap={leftSelectedCap}
+                onSelectCap={leftSelectCap}
+                onPlayerAction={leftPlayerAction}
+                onTeamAction={leftTeamAction}
+                onToggleInWater={leftToggle}
             />
 
             {/* Vertical divider */}
-            <div className="bg-border/30" />
+            <div className="bg-border" />
 
             <TeamSection
-                team="blue"
-                players={awayPlayers}
-                teamScore={gameState.away_score}
+                team={rightTeam}
+                players={rightPlayers}
+                teamScore={rightScore}
                 foulLimit={foulLimit}
-                selectedCap={selectedBlueCap}
-                onSelectCap={handleSelectBlue}
-                onPlayerAction={handleBlueAction}
-                onTeamAction={handleBlueTeam}
+                selectedCap={rightSelectedCap}
+                onSelectCap={rightSelectCap}
+                onPlayerAction={rightPlayerAction}
+                onTeamAction={rightTeamAction}
+                onToggleInWater={rightToggle}
             />
         </div>
     );

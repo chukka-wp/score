@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react';
+
 import { formatEventType } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -32,8 +34,6 @@ function StepHint({ step }: { step: string }) {
             return <span className="text-muted-foreground">Team?</span>;
         case 'awaiting_outcome':
             return <span className="text-muted-foreground">V/M/B?</span>;
-        case 'awaiting_confirm':
-            return <span className="text-muted-foreground">Enter ✓</span>;
         default:
             return <span className="animate-pulse text-muted-foreground">_</span>;
     }
@@ -43,9 +43,28 @@ export function CommandInput({ entryState, playerPreview }: Props) {
     const { step, eventType, capNumber, team, outcome } = entryState;
     const label = eventType ? formatEventType(eventType) : null;
     const hotkey = eventType ? EVENT_HOTKEYS[eventType] ?? null : null;
+    const prevStepRef = useRef(step);
+    const [flash, setFlash] = useState(false);
+
+    useEffect(() => {
+        const wasActive = prevStepRef.current !== 'idle';
+        prevStepRef.current = step;
+
+        if (wasActive && step === 'idle') {
+            setFlash(true);
+            const timer = setTimeout(() => setFlash(false), 400);
+
+            return () => clearTimeout(timer);
+        }
+    }, [step]);
 
     return (
-        <div className="flex items-center gap-1.5 rounded-lg bg-card px-4 py-3 font-mono text-sm ring-1 ring-transparent transition-shadow focus-within:ring-primary">
+        <div className={cn(
+            'flex items-center gap-1.5 rounded-lg bg-card px-4 py-3 font-mono text-sm ring-1 transition-all duration-300',
+            flash
+                ? 'ring-sync-online/60 bg-sync-online/5'
+                : 'ring-transparent focus-within:ring-primary',
+        )}>
             {/* Prompt character */}
             <span className="text-muted-foreground">&gt;</span>
 
@@ -71,11 +90,13 @@ export function CommandInput({ entryState, playerPreview }: Props) {
             {team && (
                 <span
                     className={cn(
-                        'font-bold',
-                        team === 'white' ? 'text-team-white-foreground' : 'text-team-blue-foreground',
+                        'rounded px-1.5 py-0.5 text-xs font-bold uppercase',
+                        team === 'white'
+                            ? 'bg-team-white text-team-white-foreground ring-1 ring-foreground/10'
+                            : 'bg-team-blue text-team-blue-foreground',
                     )}
                 >
-                    {team === 'white' ? 'W White' : 'B Blue'}
+                    {team === 'white' ? 'White' : 'Blue'}
                 </span>
             )}
 

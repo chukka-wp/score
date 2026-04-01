@@ -1,4 +1,4 @@
-import { MoonIcon, SunIcon } from 'lucide-react';
+import { ArrowRightLeftIcon, MoonIcon, SunIcon } from 'lucide-react';
 
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
@@ -8,6 +8,8 @@ import type { SyncStatus } from '@/types';
 type Props = {
     status: SyncStatus;
     pendingCount: number;
+    sidesSwapped: boolean;
+    onToggleSides: () => void;
 };
 
 const STATUS_COLORS: Record<SyncStatus, string> = {
@@ -34,7 +36,7 @@ function statusLabel(status: SyncStatus, pendingCount: number): string {
     return 'Online';
 }
 
-export function SyncIndicator({ status, pendingCount }: Props) {
+export function SyncIndicator({ status, pendingCount, sidesSwapped, onToggleSides }: Props) {
     const [appearance, setAppearance] = useAppearance();
 
     return (
@@ -53,11 +55,24 @@ export function SyncIndicator({ status, pendingCount }: Props) {
 
             <button
                 type="button"
+                onClick={onToggleSides}
+                className={cn(
+                    'ml-1 rounded p-1.5 text-muted-foreground hover:text-foreground',
+                    sidesSwapped && 'bg-muted text-foreground',
+                )}
+                aria-label={sidesSwapped ? 'Swap sides back (Blue left, White right)' : 'Swap sides (White left, Blue right)'}
+                title="Swap sides"
+            >
+                <ArrowRightLeftIcon className="size-4" />
+            </button>
+
+            <button
+                type="button"
                 onClick={() => setAppearance(appearance === 'dark' ? 'light' : 'dark')}
-                className="ml-1 rounded p-0.5 text-muted-foreground hover:text-foreground"
+                className="rounded p-1.5 text-muted-foreground hover:text-foreground"
                 aria-label={`Switch to ${appearance === 'dark' ? 'light' : 'dark'} mode`}
             >
-                {appearance === 'dark' ? <SunIcon className="size-3.5" /> : <MoonIcon className="size-3.5" />}
+                {appearance === 'dark' ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
             </button>
         </div>
     );

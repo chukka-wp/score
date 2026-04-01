@@ -1,6 +1,6 @@
-import { useCallback, useReducer } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 
-import type { EventEntryState, EventType, GameState, RosterEntry, TeamSide } from '@/types';
+import type { EventEntryState, EventEntryStep, EventType, GameState, RosterEntry, TeamSide } from '@/types';
 
 type EventEntryAction =
     | { type: 'START_EVENT'; eventType: EventType }
@@ -9,6 +9,7 @@ type EventEntryAction =
     | { type: 'SET_CAP'; cap: number }
     | { type: 'SET_TEAM'; team: TeamSide }
     | { type: 'SET_OUTCOME'; outcome: string }
+    | { type: 'STEP_BACK' }
     | { type: 'CONFIRM' }
     | { type: 'CANCEL' }
     | { type: 'SET_PLAYER_PREVIEW'; name: string | null };
@@ -40,6 +41,21 @@ const EVENTS_WITHOUT_CAP: EventType[] = [
 ];
 
 const EVENTS_WITH_OUTCOME: EventType[] = ['shootout_shot', 'penalty_throw_taken', 'shot'];
+
+const EVENTS_REQUIRING_CAP: EventType[] = [
+    'goal',
+    'exclusion_foul',
+    'ordinary_foul',
+    'penalty_foul',
+    'penalty_throw_taken',
+    'shot',
+    'yellow_card',
+    'red_card',
+    'substitution',
+    'violent_action_exclusion',
+    'misconduct_exclusion',
+    'shootout_shot',
+];
 
 function reducer(state: EventEntryState, action: EventEntryAction): EventEntryState {
     switch (action.type) {
@@ -111,6 +127,29 @@ function reducer(state: EventEntryState, action: EventEntryAction): EventEntrySt
                 outcome: action.outcome,
             };
 
+        case 'STEP_BACK': {
+            switch (state.step) {
+                case 'awaiting_cap':
+                    return INITIAL_STATE;
+                case 'awaiting_team':
+                    if (state.eventType && EVENTS_WITHOUT_CAP.includes(state.eventType)) {
+                        return INITIAL_STATE;
+                    }
+
+                    return { ...state, step: 'awaiting_cap', team: null, playerPreview: null };
+                case 'awaiting_outcome':
+                    return { ...state, step: 'awaiting_team', team: null, outcome: null };
+                case 'awaiting_confirm':
+                    if (state.outcome !== null) {
+                        return { ...state, step: 'awaiting_outcome', outcome: null };
+                    }
+
+                    return { ...state, step: 'awaiting_team', team: null };
+                default:
+                    return state;
+            }
+        }
+
         case 'SET_PLAYER_PREVIEW':
             return { ...state, playerPreview: action.name };
 
@@ -131,6 +170,8 @@ type UseEventEntryReturn = {
     setCap: (cap: number) => void;
     setTeam: (team: TeamSide) => void;
     setOutcome: (outcome: string) => void;
+    advanceFromCap: () => boolean;
+    stepBack: () => void;
     confirm: () => void;
     cancel: () => void;
     undo: () => void;
@@ -147,8 +188,11 @@ export function useEventEntry(
         period_clock_seconds: number;
         payload: Record<string, unknown>;
     }) => Promise<string>,
+    onEventAccepted?: () => void,
 ): UseEventEntryReturn {
     const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+    const onEventAcceptedRef = useRef(onEventAccepted);
+    onEventAcceptedRef.current = onEventAccepted;
 
     const resolvePlayerName = useCallback(
         (capNumber: string, team: TeamSide | null): string | null => {
@@ -189,6 +233,10 @@ export function useEventEntry(
         dispatch({ type: 'DELETE_DIGIT' });
     }, []);
 
+    const stepBack = useCallback(() => {
+        dispatch({ type: 'STEP_BACK' });
+    }, []);
+
     const setCap = useCallback(
         (cap: number) => {
             dispatch({ type: 'SET_CAP', cap });
@@ -199,6 +247,31 @@ export function useEventEntry(
         },
         [teamScope],
     );
+
+    // Advance from awaiting_cap to awaiting_team. Returns false if cap is required but empty.
+    const advanceFromCap = useCallback((): boolean => {
+        if (state.step !== 'awaiting_cap') {
+            return false;
+        }
+
+        const requiresCap = state.eventType && EVENTS_REQUIRING_CAP.includes(state.eventType);
+
+        if (requiresCap && state.capNumber.length === 0) {
+            return false;
+        }
+
+        const cap = parseInt(state.capNumber, 10);
+
+        if (state.capNumber.length > 0 && !isNaN(cap)) {
+            dispatch({ type: 'SET_CAP', cap });
+
+            if (teamScope) {
+                dispatch({ type: 'SET_TEAM', team: teamScope });
+            }
+        }
+
+        return true;
+    }, [state.step, state.eventType, state.capNumber, teamScope]);
 
     const setTeam = useCallback((team: TeamSide) => {
         dispatch({ type: 'SET_TEAM', team });
@@ -232,6 +305,25 @@ export function useEventEntry(
             return;
         }
 
+        // Validate required fields
+        const requiresCap = EVENTS_REQUIRING_CAP.includes(state.eventType);
+
+        if (requiresCap && state.capNumber.length === 0) {
+            return;
+        }
+
+        const team = state.team ?? teamScope;
+
+        if (!team) {
+            return;
+        }
+
+        const requiresOutcome = EVENTS_WITH_OUTCOME.includes(state.eventType);
+
+        if (requiresOutcome && !state.outcome) {
+            return;
+        }
+
         enqueueEvent({
             type: state.eventType,
             period: gameState.current_period,
@@ -239,8 +331,19 @@ export function useEventEntry(
             payload: buildPayload(),
         });
 
+        onEventAcceptedRef.current?.();
         dispatch({ type: 'CONFIRM' });
-    }, [state.eventType, gameState, buildPayload, enqueueEvent]);
+    }, [state, teamScope, gameState, buildPayload, enqueueEvent]);
+
+    // Auto-submit: when the state machine reaches awaiting_confirm, fire immediately
+    const confirmRef = useRef(confirm);
+    confirmRef.current = confirm;
+
+    useEffect(() => {
+        if (state.step === 'awaiting_confirm') {
+            confirmRef.current();
+        }
+    }, [state.step]);
 
     const cancel = useCallback(() => {
         dispatch({ type: 'CANCEL' });
@@ -263,6 +366,8 @@ export function useEventEntry(
         setCap,
         setTeam,
         setOutcome,
+        advanceFromCap,
+        stepBack,
         confirm,
         cancel,
         undo,

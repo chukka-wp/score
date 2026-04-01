@@ -14,9 +14,7 @@ type Props = {
 };
 
 export function RecentEvents({ events, onUndo }: Props) {
-    const displayed = events.slice(0, 10);
-
-    if (displayed.length === 0) {
+    if (events.length === 0) {
         return (
             <div className="rounded-lg bg-card p-4">
                 <div className="text-xs text-muted-foreground">No events yet</div>
@@ -31,7 +29,7 @@ export function RecentEvents({ events, onUndo }: Props) {
             </div>
 
             <div className="space-y-1.5">
-                {displayed.map((event, index) => (
+                {events.map((event, index) => (
                     <EventRow
                         key={event.id}
                         event={event}

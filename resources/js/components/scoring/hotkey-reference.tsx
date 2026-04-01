@@ -45,7 +45,7 @@ const HOTKEY_CATEGORIES: HotkeyCategory[] = [
             { key: 'V', description: 'Saved' },
             { key: 'M', description: 'Missed' },
             { key: 'B', description: 'Blocked' },
-            { key: 'G', description: 'Goal (penalty/shootout)' },
+            { key: 'G', description: 'Goal (during penalty/shootout outcome)' },
         ],
     },
     {

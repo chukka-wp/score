@@ -1,6 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { TablePropertiesIcon } from 'lucide-react';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { EventButtonPanel } from '@/components/scoring/event-button-panel';
 import { EventEntry } from '@/components/scoring/event-entry';
@@ -23,11 +23,10 @@ import { useExclusionTimers } from '@/hooks/use-exclusion-timers';
 import { useGameState } from '@/hooks/use-game-state';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { useOfflineQueue } from '@/hooks/use-offline-queue';
-import { usePossessionBackdrop } from '@/hooks/use-possession-backdrop';
 import { useScorerSession } from '@/hooks/use-scorer-session';
+import { useScoringAudio } from '@/hooks/use-scoring-audio';
 import ScoringLayout from '@/layouts/scoring-layout';
 import type { EventType, Match, MatchEvent, ReverbConfig, RosterEntry, RuleSet } from '@/types';
-import { cn } from '@/lib/utils';
 
 type Props = {
     match: Match;
@@ -50,12 +49,12 @@ export default function ScoringMatch({
     scorer_token,
     reverb_config,
 }: Props) {
-    const session = useScorerSession(scorer_token, match.id);
-
     // Stabilise reverbConfig — Inertia props are stable but memoize to be safe
     const stableReverbConfig = useMemo(() => reverb_config, [reverb_config.key, reverb_config.host, reverb_config.port, reverb_config.scheme]);
 
-    const { gameState, applyOptimisticEvent } = useGameState(match.id, game_state, stableReverbConfig, session.token);
+    const { gameState, applyOptimisticEvent } = useGameState(match.id, game_state, stableReverbConfig, '');
+
+    const session = useScorerSession(scorer_token, match.id, gameState.current_period, rule_set.periods);
     const queue = useOfflineQueue(match.id, session.token);
 
     const clockControlRef = useRef<ReturnType<typeof useClockControl>>(null!);
@@ -94,11 +93,48 @@ export default function ScoringMatch({
         [applyOptimisticEvent, queue, rule_set],
     );
 
-    const eventEntry = useEventEntry(gameState, session.teamScope, home_roster, away_roster, enqueueWithOptimism);
+    const playSound = useScoringAudio();
+    const handleEventAccepted = useCallback(() => playSound('event_accepted'), [playSound]);
+
+    const eventEntry = useEventEntry(gameState, session.teamScope, home_roster, away_roster, enqueueWithOptimism, handleEventAccepted);
     const exclusionTimers = useExclusionTimers(gameState.active_exclusions);
     const clockControl = useClockControl(gameState, rule_set, enqueueWithOptimism);
     clockControlRef.current = clockControl;
-    const backdropClass = usePossessionBackdrop(gameState.possession);
+
+    // Audio alerts for clock expiry
+    const prevPossessionRef = useRef(clockControl.possessionClockSeconds);
+    const prevPeriodRef = useRef(clockControl.periodClockSeconds);
+    const prevExclusionCountRef = useRef(exclusionTimers.length);
+
+    useEffect(() => {
+        const prevPoss = prevPossessionRef.current;
+        const currPoss = clockControl.possessionClockSeconds;
+        prevPossessionRef.current = currPoss;
+
+        if (prevPoss !== null && prevPoss > 0 && currPoss === 0) {
+            playSound('possession_expired');
+        }
+    }, [clockControl.possessionClockSeconds, playSound]);
+
+    useEffect(() => {
+        const prev = prevPeriodRef.current;
+        const curr = clockControl.periodClockSeconds;
+        prevPeriodRef.current = curr;
+
+        if (prev > 0 && curr === 0 && clockControl.isClockRunning) {
+            playSound('period_expired');
+        }
+    }, [clockControl.periodClockSeconds, clockControl.isClockRunning, playSound]);
+
+    useEffect(() => {
+        const prevCount = prevExclusionCountRef.current;
+        const currCount = exclusionTimers.length;
+        prevExclusionCountRef.current = currCount;
+
+        if (currCount < prevCount && prevCount > 0) {
+            playSound('exclusion_expired');
+        }
+    }, [exclusionTimers.length, playSound]);
 
     const [historyOpen, setHistoryOpen] = useState(false);
     const [timingOpen, setTimingOpen] = useState(false);
@@ -106,6 +142,36 @@ export default function ScoringMatch({
     const [periodPromptOpen, setPeriodPromptOpen] = useState(false);
     const [scoresheetOpen, setScoresheetOpen] = useState(false);
     const [scopeSelectorVisible, setScopeSelectorVisible] = useState(!session.teamScope);
+
+    const inWaterByTeam = useMemo(() => {
+        const homeIn = new Set(home_roster.filter((r) => r.is_starting).map((r) => r.player_id));
+        const awayIn = new Set(away_roster.filter((r) => r.is_starting).map((r) => r.player_id));
+        const homePlayerIds = new Set(home_roster.map((r) => r.player_id));
+
+        for (const event of initialEvents) {
+            if (event.type !== 'substitution' && event.type !== 'goalkeeper_substitution') {
+                continue;
+            }
+
+            const payload = event.payload as Record<string, unknown>;
+            const playerId = payload.player_id as string | undefined;
+
+            if (!playerId) {
+                continue;
+            }
+
+            const targetSet = homePlayerIds.has(playerId) ? homeIn : awayIn;
+            const action = payload.action as string | undefined;
+
+            if (action === 'sub_off') {
+                targetSet.delete(playerId);
+            } else if (action === 'sub_on') {
+                targetSet.add(playerId);
+            }
+        }
+
+        return { white: homeIn, blue: awayIn };
+    }, [home_roster, away_roster, initialEvents]);
 
     const isShootoutMode = gameState.status === 'shootout';
 
@@ -128,6 +194,7 @@ export default function ScoringMatch({
         isShootoutMode,
         modalActions,
         rule_set,
+        session.sidesSwapped,
     );
 
     function handlePeriodEnd(): void {
@@ -172,7 +239,6 @@ export default function ScoringMatch({
 
     function handleButtonAction(type: EventType, team: 'white' | 'blue'): void {
         if (BUTTON_DIRECT_EVENTS.includes(type)) {
-            // Events that only need a team — enqueue directly, skip the state machine
             enqueueWithOptimism({
                 type,
                 period: gameState.current_period,
@@ -183,10 +249,30 @@ export default function ScoringMatch({
             return;
         }
 
-        // Events that need cap number or outcome — start the event entry flow
         eventEntry.startEvent(type);
         eventEntry.setTeam(team);
     }
+
+    const handleToggleInWater = useCallback(
+        (playerId: string, capNumber: number, team: 'white' | 'blue', action: 'sub_on' | 'sub_off') => {
+            const roster = team === 'blue' ? away_roster : home_roster;
+            const entry = roster.find((r) => r.player_id === playerId);
+            const isGk = entry?.role === 'goalkeeper' || entry?.role === 'substitute_goalkeeper';
+
+            enqueueWithOptimism({
+                type: isGk ? 'goalkeeper_substitution' : 'substitution',
+                period: gameState.current_period,
+                period_clock_seconds: gameState.period_clock_seconds,
+                payload: {
+                    team_side: team,
+                    player_id: playerId,
+                    cap_number: capNumber,
+                    action,
+                },
+            });
+        },
+        [enqueueWithOptimism, gameState.current_period, gameState.period_clock_seconds, home_roster, away_roster],
+    );
 
     const handleScoresheetPlayerAction = useCallback(
         (type: EventType, capNumber: number, team: 'white' | 'blue') => {
@@ -221,12 +307,16 @@ export default function ScoringMatch({
         foulLimit: rule_set.personal_foul_limit,
         onPlayerAction: handleScoresheetPlayerAction,
         onTeamAction: handleScoresheetTeamAction,
-    }), [home_roster, away_roster, initialEvents, gameState, exclusionTimers, rule_set.personal_foul_limit, handleScoresheetPlayerAction, handleScoresheetTeamAction]);
+        onToggleInWater: handleToggleInWater,
+        homeInWaterIds: inWaterByTeam.white,
+        awayInWaterIds: inWaterByTeam.blue,
+        sidesSwapped: session.sidesSwapped,
+    }), [home_roster, away_roster, initialEvents, gameState, exclusionTimers, rule_set.personal_foul_limit, handleScoresheetPlayerAction, handleScoresheetTeamAction, handleToggleInWater, inWaterByTeam, session.sidesSwapped]);
 
     return (
         <>
             <Head title="Live Scoring" />
-            <div className={cn('flex h-full flex-col transition-colors duration-300', backdropClass)}>
+            <div className="flex h-full flex-col">
                 {/* Team scope selector overlay */}
                 {scopeSelectorVisible && (
                     <div className="bg-background/80 absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
@@ -258,6 +348,7 @@ export default function ScoringMatch({
                     awayTimeoutsRemaining={gameState.away_timeouts_remaining}
                     totalTimeouts={rule_set.timeouts_per_team}
                     isClockRunning={clockControl.isClockRunning}
+                    sidesSwapped={session.sidesSwapped}
                 />
 
                 {/* Exclusion Panel — mobile/tablet only (desktop shows inline in scoresheet) */}
@@ -265,13 +356,14 @@ export default function ScoringMatch({
                     <ExclusionPanel
                         exclusions={exclusionTimers}
                         homeTeamId={match.home_team_id}
+                        sidesSwapped={session.sidesSwapped}
                     />
                 </div>
 
                 {/* Main scoring area */}
                 <div className="flex flex-1 flex-col overflow-hidden">
                     {isShootoutMode ? (
-                        <ShootoutPanel shootoutState={gameState.shootout_state} />
+                        <ShootoutPanel shootoutState={gameState.shootout_state} homeTeamId={match.home_team_id} />
                     ) : (
                         <>
                             {/* Event Entry (keyboard) — always visible */}
@@ -289,6 +381,7 @@ export default function ScoringMatch({
                                         <EventButtonPanel
                                             onAction={handleButtonAction}
                                             disabled={eventEntry.state.step !== 'idle'}
+                                            sidesSwapped={session.sidesSwapped}
                                         />
                                     </div>
 
@@ -324,7 +417,12 @@ export default function ScoringMatch({
                 </div>
 
                 {/* Sync Indicator */}
-                <SyncIndicator status={queue.syncStatus} pendingCount={queue.pendingCount} />
+                <SyncIndicator
+                    status={queue.syncStatus}
+                    pendingCount={queue.pendingCount}
+                    sidesSwapped={session.sidesSwapped}
+                    onToggleSides={session.toggleSides}
+                />
 
                 {/* Modals */}
                 <EventHistory

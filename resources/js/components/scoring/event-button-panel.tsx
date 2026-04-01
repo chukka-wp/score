@@ -6,6 +6,7 @@ import type { EventType } from '@/types';
 type Props = {
     onAction: (type: EventType, team: 'white' | 'blue') => void;
     disabled: boolean;
+    sidesSwapped: boolean;
 };
 
 type EventButton = {
@@ -61,8 +62,10 @@ function TeamColumn({
         <div className="flex flex-col gap-1">
             <div
                 className={cn(
-                    'text-center font-mono text-xs font-medium uppercase tracking-wide',
-                    team === 'white' ? 'text-team-white-foreground' : 'text-team-blue-foreground',
+                    'rounded px-2 py-1 text-center font-mono text-xs font-bold uppercase tracking-wide',
+                    team === 'white'
+                        ? 'bg-team-white text-team-white-foreground ring-1 ring-foreground/10'
+                        : 'bg-team-blue text-team-blue-foreground',
                 )}
             >
                 {team === 'white' ? 'White' : 'Blue'}
@@ -88,11 +91,14 @@ function TeamColumn({
     );
 }
 
-export function EventButtonPanel({ onAction, disabled }: Props) {
+export function EventButtonPanel({ onAction, disabled, sidesSwapped }: Props) {
+    const leftTeam = sidesSwapped ? 'blue' : 'white';
+    const rightTeam = sidesSwapped ? 'white' : 'blue';
+
     return (
         <div className="grid grid-cols-2 gap-4 rounded-lg bg-card p-3">
-            <TeamColumn team="white" onAction={onAction} disabled={disabled} />
-            <TeamColumn team="blue" onAction={onAction} disabled={disabled} />
+            <TeamColumn team={leftTeam} onAction={onAction} disabled={disabled} />
+            <TeamColumn team={rightTeam} onAction={onAction} disabled={disabled} />
         </div>
     );
 }
