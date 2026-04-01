@@ -7,7 +7,11 @@ type Props = {
 
 export function TimeoutsIndicator({ remaining, total }: Props) {
     return (
-        <div className="flex items-center gap-1">
+        <div
+            className="flex items-center gap-1"
+            role="img"
+            aria-label={`${remaining} of ${total} timeouts remaining`}
+        >
             {Array.from({ length: total }, (_, i) => (
                 <div
                     key={i}

@@ -34,17 +34,19 @@ export const ExclusionTimer = React.memo(function ExclusionTimer({
 
             <span
                 className={cn(
-                    'font-mono text-sm font-semibold tabular-nums',
-                    isUrgent ? 'text-exclusion-urgent' : 'text-exclusion',
+                    'font-mono font-semibold tabular-nums',
+                    isUrgent
+                        ? 'text-base text-exclusion-urgent animate-pulse'
+                        : 'text-sm text-exclusion',
                 )}
             >
                 {formatShortClock(Math.ceil(displaySeconds))}
             </span>
 
             {exclusionType !== 'standard' && (
-                <span className="text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                     {exclusionType === 'violent_action' ? 'VA' : 'FG'}
-                </span>
+                </div>
             )}
         </div>
     );

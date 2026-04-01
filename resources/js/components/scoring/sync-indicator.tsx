@@ -1,3 +1,6 @@
+import { MoonIcon, SunIcon } from 'lucide-react';
+
+import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 
 import type { SyncStatus } from '@/types';
@@ -32,8 +35,10 @@ function statusLabel(status: SyncStatus, pendingCount: number): string {
 }
 
 export function SyncIndicator({ status, pendingCount }: Props) {
+    const [appearance, setAppearance] = useAppearance();
+
     return (
-        <div className="fixed right-4 bottom-4 z-50 flex items-center gap-2 rounded-lg bg-card px-3 py-1.5 shadow-sm ring-1 ring-border">
+        <div className="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-50 flex items-center gap-2 rounded-lg bg-card px-3 py-1.5 shadow-sm ring-1 ring-border">
             <div
                 className={cn(
                     'size-2 rounded-full',
@@ -45,6 +50,15 @@ export function SyncIndicator({ status, pendingCount }: Props) {
             <span className={cn('text-xs font-medium', STATUS_TEXT_COLORS[status])}>
                 {statusLabel(status, pendingCount)}
             </span>
+
+            <button
+                type="button"
+                onClick={() => setAppearance(appearance === 'dark' ? 'light' : 'dark')}
+                className="ml-1 rounded p-0.5 text-muted-foreground hover:text-foreground"
+                aria-label={`Switch to ${appearance === 'dark' ? 'light' : 'dark'} mode`}
+            >
+                {appearance === 'dark' ? <SunIcon className="size-3.5" /> : <MoonIcon className="size-3.5" />}
+            </button>
         </div>
     );
 }

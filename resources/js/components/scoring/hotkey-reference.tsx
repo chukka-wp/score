@@ -31,15 +31,29 @@ const HOTKEY_CATEGORIES: HotkeyCategory[] = [
             { key: 'P', description: 'Penalty' },
             { key: 'T', description: 'Timeout' },
             { key: 'S', description: 'Substitution' },
+            { key: 'X', description: 'Shot' },
+            { key: 'C', description: 'Free Throw' },
+            { key: 'D', description: 'Two-Meter Throw' },
             { key: 'Y', description: 'Yellow Card' },
             { key: 'R', description: 'Red Card' },
             { key: 'O', description: 'Shootout Shot' },
         ],
     },
     {
+        label: 'Outcomes',
+        keys: [
+            { key: 'V', description: 'Saved' },
+            { key: 'M', description: 'Missed' },
+            { key: 'B', description: 'Blocked' },
+            { key: 'G', description: 'Goal (penalty/shootout)' },
+        ],
+    },
+    {
         label: 'Clock',
         keys: [
             { key: 'Space', description: 'Start / Stop clock' },
+            { key: ']', description: 'Reset possession clock (full)' },
+            { key: '[', description: 'Reset possession clock (reduced)' },
         ],
     },
     {

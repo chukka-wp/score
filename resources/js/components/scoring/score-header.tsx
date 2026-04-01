@@ -29,62 +29,64 @@ export function ScoreHeader({
     isClockRunning,
 }: Props) {
     return (
-        <div className="flex items-center justify-between gap-4 rounded-lg bg-card px-6 py-4">
-            {/* White team */}
-            <div className="flex flex-col items-center gap-1">
-                <span className="text-xs font-medium uppercase tracking-wider text-team-white-foreground">
-                    WHITE
-                </span>
-                <span
-                    className={cn(
-                        'font-mono text-5xl font-bold tabular-nums',
-                        possession === 'home' && 'text-possession',
-                    )}
-                >
-                    {homeScore}
-                </span>
-                <TimeoutsIndicator remaining={homeTimeoutsRemaining} total={totalTimeouts} />
-            </div>
-
-            {/* Center clock area */}
-            <div className="flex flex-col items-center gap-1">
-                <span className="text-xs font-medium text-muted-foreground">
-                    {formatPeriod(currentPeriod)}
-                </span>
-                <span
-                    className={cn(
-                        'font-mono text-3xl font-semibold tabular-nums',
-                        isClockRunning ? 'text-clock' : 'text-clock-stopped',
-                    )}
-                >
-                    {formatClock(periodClockSeconds)}
-                </span>
-                {possessionClockSeconds !== null && (
-                    <span
+        <div className="rounded-lg bg-card px-4 py-3 sm:px-6 sm:py-4">
+            <div className="flex items-center justify-between gap-2 sm:gap-4">
+                {/* White team */}
+                <div className="flex min-w-0 flex-col items-center gap-1">
+                    <div className="font-mono text-xs font-medium uppercase tracking-wide text-team-white-foreground">
+                        WHITE
+                    </div>
+                    <div
                         className={cn(
-                            'font-mono text-lg tabular-nums',
+                            'font-mono text-4xl font-semibold tabular-nums sm:text-5xl',
+                            possession === 'home' && 'text-possession',
+                        )}
+                    >
+                        {homeScore}
+                    </div>
+                    <TimeoutsIndicator remaining={homeTimeoutsRemaining} total={totalTimeouts} />
+                </div>
+
+                {/* Center clock area */}
+                <div className="flex min-w-0 flex-col items-center gap-1">
+                    <div className="rounded bg-muted px-2 py-0.5 text-sm font-medium text-foreground">
+                        {formatPeriod(currentPeriod)}
+                    </div>
+                    <div
+                        className={cn(
+                            'font-mono text-2xl font-semibold tabular-nums sm:text-3xl',
                             isClockRunning ? 'text-clock' : 'text-clock-stopped',
                         )}
                     >
-                        {formatShortClock(possessionClockSeconds)}
-                    </span>
-                )}
-            </div>
-
-            {/* Blue team */}
-            <div className="flex flex-col items-center gap-1">
-                <span className="text-xs font-medium uppercase tracking-wider text-team-blue-foreground">
-                    BLUE
-                </span>
-                <span
-                    className={cn(
-                        'font-mono text-5xl font-bold tabular-nums',
-                        possession === 'away' && 'text-possession',
+                        {formatClock(periodClockSeconds)}
+                    </div>
+                    {possessionClockSeconds !== null && (
+                        <div
+                            className={cn(
+                                'font-mono tabular-nums sm:text-lg',
+                                isClockRunning ? 'text-clock' : 'text-clock-stopped',
+                            )}
+                        >
+                            {formatShortClock(possessionClockSeconds)}
+                        </div>
                     )}
-                >
-                    {awayScore}
-                </span>
-                <TimeoutsIndicator remaining={awayTimeoutsRemaining} total={totalTimeouts} />
+                </div>
+
+                {/* Blue team */}
+                <div className="flex min-w-0 flex-col items-center gap-1">
+                    <div className="font-mono text-xs font-medium uppercase tracking-wide text-team-blue-foreground">
+                        BLUE
+                    </div>
+                    <div
+                        className={cn(
+                            'font-mono text-4xl font-semibold tabular-nums sm:text-5xl',
+                            possession === 'away' && 'text-possession',
+                        )}
+                    >
+                        {awayScore}
+                    </div>
+                    <TimeoutsIndicator remaining={awayTimeoutsRemaining} total={totalTimeouts} />
+                </div>
             </div>
         </div>
     );

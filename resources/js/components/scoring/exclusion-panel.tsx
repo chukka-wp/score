@@ -17,15 +17,19 @@ export function ExclusionPanel({ exclusions, homeTeamId }: Props) {
     const homeExclusions = exclusions.filter((e) => e.team_id === homeTeamId);
     const awayExclusions = exclusions.filter((e) => e.team_id !== homeTeamId);
 
+    if (exclusions.length === 0) {
+        return null;
+    }
+
     return (
-        <div className="grid grid-cols-2 gap-4 rounded-lg bg-card p-4">
+        <div className="grid grid-cols-2 gap-4 rounded-lg bg-card p-3 animate-in fade-in slide-in-from-top-1 duration-200">
             {/* White (home) exclusions */}
             <div className="space-y-2">
-                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <div className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     White
-                </span>
+                </div>
                 {homeExclusions.length === 0 ? (
-                    <p className="text-xs text-muted-foreground/50">No exclusions</p>
+                    <div className="text-xs text-muted-foreground/50">None</div>
                 ) : (
                     homeExclusions.map((ex) => (
                         <ExclusionTimer
@@ -41,11 +45,11 @@ export function ExclusionPanel({ exclusions, homeTeamId }: Props) {
 
             {/* Blue (away) exclusions */}
             <div className="space-y-2">
-                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <div className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Blue
-                </span>
+                </div>
                 {awayExclusions.length === 0 ? (
-                    <p className="text-xs text-muted-foreground/50">No exclusions</p>
+                    <div className="text-xs text-muted-foreground/50">None</div>
                 ) : (
                     awayExclusions.map((ex) => (
                         <ExclusionTimer

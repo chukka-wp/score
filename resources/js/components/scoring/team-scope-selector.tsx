@@ -8,13 +8,10 @@ type Props = {
 
 export function TeamScopeSelector({ value, onChange }: Props) {
     function handleChange(newValue: string): void {
-        if (newValue === '') {
-            onChange(null);
+        // ToggleGroup sends empty string when deselecting — treat as "both"
+        const resolved = newValue || 'both';
 
-            return;
-        }
-
-        onChange(newValue as 'white' | 'blue');
+        onChange(resolved === 'both' ? null : (resolved as 'white' | 'blue'));
     }
 
     return (
@@ -25,7 +22,7 @@ export function TeamScopeSelector({ value, onChange }: Props) {
 
             <ToggleGroup
                 type="single"
-                value={value ?? ''}
+                value={value ?? 'both'}
                 onValueChange={handleChange}
                 variant="outline"
             >
@@ -47,7 +44,7 @@ export function TeamScopeSelector({ value, onChange }: Props) {
                     Blue
                 </ToggleGroupItem>
 
-                <ToggleGroupItem value="">
+                <ToggleGroupItem value="both">
                     Both
                 </ToggleGroupItem>
             </ToggleGroup>

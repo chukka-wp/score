@@ -40,6 +40,7 @@ return [
         'api_prefix' => '/api/v1',
         'timeout' => 10,
         'connect_timeout' => 5,
+        'fake' => env('CHUKKA_FAKE_API', false),
     ],
 
 ];

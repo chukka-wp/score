@@ -22,9 +22,9 @@ export function EventEntry({ entryState, teamScope }: Props) {
             />
 
             {teamScope && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <span>Scoped to</span>
-                    <span className="font-medium uppercase">
+                <div className="flex items-center gap-1 font-mono text-xs text-muted-foreground">
+                    Scoped to
+                    <span className="font-medium uppercase tracking-wide">
                         {teamScope === 'white' ? 'White' : 'Blue'}
                     </span>
                 </div>

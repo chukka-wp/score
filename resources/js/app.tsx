@@ -12,3 +12,9 @@ createInertiaApp({
         return <TooltipProvider delayDuration={300}>{app}</TooltipProvider>;
     },
 });
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    });
+}

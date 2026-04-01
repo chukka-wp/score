@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Services\CloudApiService;
+use App\Services\FakeCloudApiService;
 use App\Services\TokenService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -17,7 +18,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(CloudApiService::class);
+        $this->app->singleton(CloudApiService::class, function () {
+            if (app()->isLocal() && config('services.chukka.fake', false)) {
+                return new FakeCloudApiService;
+            }
+
+            return new CloudApiService;
+        });
 
         $this->app->singleton(TokenService::class, function ($app) {
             return new TokenService($app->make(CloudApiService::class));

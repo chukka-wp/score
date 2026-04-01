@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
-import { useCallback, useMemo, useState } from 'react';
+import { TablePropertiesIcon } from 'lucide-react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { EventButtonPanel } from '@/components/scoring/event-button-panel';
 import { EventEntry } from '@/components/scoring/event-entry';
@@ -9,10 +10,13 @@ import { HotkeyReference } from '@/components/scoring/hotkey-reference';
 import { PeriodTransitionPrompt } from '@/components/scoring/period-transition-prompt';
 import { RecentEvents } from '@/components/scoring/recent-events';
 import { ScoreHeader } from '@/components/scoring/score-header';
+import { ScoresheetPanel } from '@/components/scoring/scoresheet-panel';
 import { ShootoutPanel } from '@/components/scoring/shootout-panel';
 import { SyncIndicator } from '@/components/scoring/sync-indicator';
 import { TeamScopeSelector } from '@/components/scoring/team-scope-selector';
 import { TimingCorrectionModal } from '@/components/scoring/timing-correction-modal';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useClockControl } from '@/hooks/use-clock-control';
 import { useEventEntry } from '@/hooks/use-event-entry';
 import { useExclusionTimers } from '@/hooks/use-exclusion-timers';
@@ -51,17 +55,56 @@ export default function ScoringMatch({
     // Stabilise reverbConfig — Inertia props are stable but memoize to be safe
     const stableReverbConfig = useMemo(() => reverb_config, [reverb_config.key, reverb_config.host, reverb_config.port, reverb_config.scheme]);
 
-    const { gameState } = useGameState(match.id, game_state, stableReverbConfig, session.token);
+    const { gameState, applyOptimisticEvent } = useGameState(match.id, game_state, stableReverbConfig, session.token);
     const queue = useOfflineQueue(match.id, session.token);
-    const eventEntry = useEventEntry(gameState, session.teamScope, home_roster, away_roster, queue.enqueue);
+
+    const clockControlRef = useRef<ReturnType<typeof useClockControl>>(null!);
+
+    const enqueueWithOptimism = useCallback(
+        async (event: Parameters<typeof queue.enqueue>[0]) => {
+            applyOptimisticEvent(event.type, event.payload);
+
+            // Auto-reset possession clock immediately (before network)
+            if (rule_set.possession_clock_enabled && clockControlRef.current) {
+                const cc = clockControlRef.current;
+
+                switch (event.type) {
+                    case 'possession_change':
+                    case 'goal':
+                        cc.resetPossessionClock(rule_set.possession_time_seconds, 'new_possession');
+                        break;
+                    case 'exclusion_foul':
+                        // WA rules: reset to reduced, but never decrease the clock
+                        cc.resetPossessionClock(
+                            Math.max(cc.possessionClockSeconds ?? 0, rule_set.second_possession_time_seconds),
+                            'exclusion_foul',
+                        );
+                        break;
+                    case 'shot':
+                        cc.resetPossessionClock(rule_set.second_possession_time_seconds, 'shot_rebound_attacking');
+                        break;
+                    case 'two_meter_throw':
+                        cc.resetPossessionClock(rule_set.second_possession_time_seconds, 'two_meter_throw');
+                        break;
+                }
+            }
+
+            return queue.enqueue(event);
+        },
+        [applyOptimisticEvent, queue, rule_set],
+    );
+
+    const eventEntry = useEventEntry(gameState, session.teamScope, home_roster, away_roster, enqueueWithOptimism);
     const exclusionTimers = useExclusionTimers(gameState.active_exclusions);
-    const clockControl = useClockControl(gameState, rule_set, queue.enqueue);
+    const clockControl = useClockControl(gameState, rule_set, enqueueWithOptimism);
+    clockControlRef.current = clockControl;
     const backdropClass = usePossessionBackdrop(gameState.possession);
 
     const [historyOpen, setHistoryOpen] = useState(false);
     const [timingOpen, setTimingOpen] = useState(false);
     const [hotkeyRefOpen, setHotkeyRefOpen] = useState(false);
     const [periodPromptOpen, setPeriodPromptOpen] = useState(false);
+    const [scoresheetOpen, setScoresheetOpen] = useState(false);
     const [scopeSelectorVisible, setScopeSelectorVisible] = useState(!session.teamScope);
 
     const isShootoutMode = gameState.status === 'shootout';
@@ -88,7 +131,7 @@ export default function ScoringMatch({
     );
 
     function handlePeriodEnd(): void {
-        queue.enqueue({
+        enqueueWithOptimism({
             type: 'period_end',
             period: gameState.current_period,
             period_clock_seconds: gameState.period_clock_seconds,
@@ -123,10 +166,62 @@ export default function ScoringMatch({
         });
     }
 
+    const BUTTON_DIRECT_EVENTS: EventType[] = [
+        'timeout_start', 'free_throw', 'two_meter_throw',
+    ];
+
     function handleButtonAction(type: EventType, team: 'white' | 'blue'): void {
+        if (BUTTON_DIRECT_EVENTS.includes(type)) {
+            // Events that only need a team — enqueue directly, skip the state machine
+            enqueueWithOptimism({
+                type,
+                period: gameState.current_period,
+                period_clock_seconds: gameState.period_clock_seconds,
+                payload: { team_side: team },
+            });
+
+            return;
+        }
+
+        // Events that need cap number or outcome — start the event entry flow
         eventEntry.startEvent(type);
         eventEntry.setTeam(team);
     }
+
+    const handleScoresheetPlayerAction = useCallback(
+        (type: EventType, capNumber: number, team: 'white' | 'blue') => {
+            enqueueWithOptimism({
+                type,
+                period: gameState.current_period,
+                period_clock_seconds: gameState.period_clock_seconds,
+                payload: { team_side: team, cap_number: capNumber },
+            });
+        },
+        [enqueueWithOptimism, gameState.current_period, gameState.period_clock_seconds],
+    );
+
+    const handleScoresheetTeamAction = useCallback(
+        (type: EventType, team: 'white' | 'blue') => {
+            enqueueWithOptimism({
+                type,
+                period: gameState.current_period,
+                period_clock_seconds: gameState.period_clock_seconds,
+                payload: { team_side: team },
+            });
+        },
+        [enqueueWithOptimism, gameState.current_period, gameState.period_clock_seconds],
+    );
+
+    const scoresheetProps = useMemo(() => ({
+        homeRoster: home_roster,
+        awayRoster: away_roster,
+        events: initialEvents,
+        gameState,
+        exclusionTimers,
+        foulLimit: rule_set.personal_foul_limit,
+        onPlayerAction: handleScoresheetPlayerAction,
+        onTeamAction: handleScoresheetTeamAction,
+    }), [home_roster, away_roster, initialEvents, gameState, exclusionTimers, rule_set.personal_foul_limit, handleScoresheetPlayerAction, handleScoresheetTeamAction]);
 
     return (
         <>
@@ -156,8 +251,8 @@ export default function ScoringMatch({
                     homeScore={gameState.home_score}
                     awayScore={gameState.away_score}
                     currentPeriod={gameState.current_period}
-                    periodClockSeconds={gameState.period_clock_seconds}
-                    possessionClockSeconds={gameState.possession_clock_seconds}
+                    periodClockSeconds={clockControl.periodClockSeconds}
+                    possessionClockSeconds={clockControl.possessionClockSeconds}
                     possession={gameState.possession}
                     homeTimeoutsRemaining={gameState.home_timeouts_remaining}
                     awayTimeoutsRemaining={gameState.away_timeouts_remaining}
@@ -165,11 +260,13 @@ export default function ScoringMatch({
                     isClockRunning={clockControl.isClockRunning}
                 />
 
-                {/* Exclusion Panel */}
-                <ExclusionPanel
-                    exclusions={exclusionTimers}
-                    homeTeamId={match.home_team_id}
-                />
+                {/* Exclusion Panel — mobile/tablet only (desktop shows inline in scoresheet) */}
+                <div className="lg:hidden">
+                    <ExclusionPanel
+                        exclusions={exclusionTimers}
+                        homeTeamId={match.home_team_id}
+                    />
+                </div>
 
                 {/* Main scoring area */}
                 <div className="flex flex-1 flex-col overflow-hidden">
@@ -177,7 +274,7 @@ export default function ScoringMatch({
                         <ShootoutPanel shootoutState={gameState.shootout_state} />
                     ) : (
                         <>
-                            {/* Event Entry */}
+                            {/* Event Entry (keyboard) — always visible */}
                             <div className="border-b px-4 py-3">
                                 <EventEntry
                                     entryState={eventEntry.state}
@@ -185,18 +282,40 @@ export default function ScoringMatch({
                                 />
                             </div>
 
-                            {/* Button Panel (mouse/tablet) */}
-                            <div className="border-b px-4 py-2">
-                                <EventButtonPanel
-                                    onAction={handleButtonAction}
-                                    disabled={eventEntry.state.step !== 'idle'}
-                                />
+                            {/* Mobile + Tablet: Button panel for touch entry */}
+                            <div className="border-b px-4 py-2 lg:hidden">
+                                <div className="flex items-center gap-2">
+                                    <div className="flex-1">
+                                        <EventButtonPanel
+                                            onAction={handleButtonAction}
+                                            disabled={eventEntry.state.step !== 'idle'}
+                                        />
+                                    </div>
+
+                                    {/* Tablet: Scoresheet slideover trigger */}
+                                    <div className="hidden self-start md:block lg:hidden">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setScoresheetOpen(true)}
+                                            className="gap-1.5"
+                                        >
+                                            <TablePropertiesIcon className="size-4" />
+                                            <span className="sr-only sm:not-sr-only">Sheet</span>
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Desktop: Scoresheet replaces button panel */}
+                            <div className="hidden min-h-0 flex-1 overflow-auto border-b px-4 py-2 lg:block">
+                                <ScoresheetPanel {...scoresheetProps} />
                             </div>
                         </>
                     )}
 
                     {/* Recent Events */}
-                    <div className="flex-1 overflow-auto px-4 py-2">
+                    <div className="flex-1 overflow-auto px-4 py-2 lg:max-h-48 lg:flex-none">
                         <RecentEvents
                             events={recentEvents}
                             onUndo={eventEntry.undo}
@@ -218,8 +337,8 @@ export default function ScoringMatch({
                 <TimingCorrectionModal
                     open={timingOpen}
                     onClose={() => setTimingOpen(false)}
-                    periodClockSeconds={gameState.period_clock_seconds}
-                    possessionClockSeconds={gameState.possession_clock_seconds}
+                    periodClockSeconds={clockControl.periodClockSeconds}
+                    possessionClockSeconds={clockControl.possessionClockSeconds}
                     onApply={handleTimingCorrection}
                 />
 
@@ -234,6 +353,18 @@ export default function ScoringMatch({
                     currentPeriod={gameState.current_period}
                     onConfirm={handlePeriodEnd}
                 />
+
+                {/* Tablet: Scoresheet slideover */}
+                <Sheet open={scoresheetOpen} onOpenChange={setScoresheetOpen}>
+                    <SheetContent side="right" className="w-[90vw] sm:max-w-xl">
+                        <SheetHeader>
+                            <SheetTitle>Scoresheet</SheetTitle>
+                        </SheetHeader>
+                        <div className="flex-1 overflow-auto px-4 pb-4">
+                            <ScoresheetPanel {...scoresheetProps} />
+                        </div>
+                    </SheetContent>
+                </Sheet>
             </div>
         </>
     );

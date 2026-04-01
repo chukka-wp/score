@@ -7,6 +7,35 @@ use App\Http\Controllers\Scoring;
 use Illuminate\Support\Facades\Route;
 
 // ──────────────────────────────────────────────────────────
+// Dev login (local only)
+// ──────────────────────────────────────────────────────────
+
+if (app()->isLocal()) {
+    Route::get('/dev-login', function () {
+        session([
+            'cloud_token' => 'dev-token',
+            'cloud_user' => [
+                'id' => 1,
+                'name' => 'Dev Manager',
+                'email' => 'dev@chukka.test',
+                'club_id' => 'dev-club',
+            ],
+        ]);
+
+        return redirect('/admin');
+    })->name('devLogin');
+
+    Route::get('/dev-score/{match?}', function (string $match = 'dev-match') {
+        session([
+            'scorer_token' => 'dev-scorer-token',
+            'scorer_match_id' => $match,
+        ]);
+
+        return redirect()->route('scoring.match', $match);
+    })->name('devScore');
+}
+
+// ──────────────────────────────────────────────────────────
 // Auth
 // ──────────────────────────────────────────────────────────
 

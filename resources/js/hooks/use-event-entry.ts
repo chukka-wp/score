@@ -5,6 +5,7 @@ import type { EventEntryState, EventType, GameState, RosterEntry, TeamSide } fro
 type EventEntryAction =
     | { type: 'START_EVENT'; eventType: EventType }
     | { type: 'APPEND_DIGIT'; digit: number }
+    | { type: 'DELETE_DIGIT' }
     | { type: 'SET_CAP'; cap: number }
     | { type: 'SET_TEAM'; team: TeamSide }
     | { type: 'SET_OUTCOME'; outcome: string }
@@ -32,11 +33,13 @@ const EVENTS_WITHOUT_CAP: EventType[] = [
     'halftime_end',
     'possession_change',
     'possession_clock_reset',
+    'free_throw',
+    'two_meter_throw',
     'shootout_start',
     'shootout_end',
 ];
 
-const EVENTS_WITH_OUTCOME: EventType[] = ['shootout_shot', 'penalty_throw_taken'];
+const EVENTS_WITH_OUTCOME: EventType[] = ['shootout_shot', 'penalty_throw_taken', 'shot'];
 
 function reducer(state: EventEntryState, action: EventEntryAction): EventEntryState {
     switch (action.type) {
@@ -68,6 +71,14 @@ function reducer(state: EventEntryState, action: EventEntryAction): EventEntrySt
             }
 
             return { ...state, capNumber: newCap };
+        }
+
+        case 'DELETE_DIGIT': {
+            if (state.step !== 'awaiting_cap' || state.capNumber.length === 0) {
+                return state;
+            }
+
+            return { ...state, capNumber: state.capNumber.slice(0, -1), playerPreview: null };
         }
 
         case 'SET_CAP':
@@ -116,6 +127,7 @@ type UseEventEntryReturn = {
     state: EventEntryState;
     startEvent: (type: EventType) => void;
     appendDigit: (digit: number) => void;
+    deleteDigit: () => void;
     setCap: (cap: number) => void;
     setTeam: (team: TeamSide) => void;
     setOutcome: (outcome: string) => void;
@@ -172,6 +184,10 @@ export function useEventEntry(
         },
         [state.capNumber, state.team, teamScope, resolvePlayerName],
     );
+
+    const deleteDigit = useCallback(() => {
+        dispatch({ type: 'DELETE_DIGIT' });
+    }, []);
 
     const setCap = useCallback(
         (cap: number) => {
@@ -243,6 +259,7 @@ export function useEventEntry(
         state,
         startEvent,
         appendDigit,
+        deleteDigit,
         setCap,
         setTeam,
         setOutcome,

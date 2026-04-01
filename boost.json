@@ -12,6 +12,9 @@
     "skills": [
         "laravel-best-practices",
         "wayfinder-development",
-        "pest-testing"
+        "pest-testing",
+        "inertia-react-development",
+        "echo-development",
+        "tailwindcss-development"
     ]
 }

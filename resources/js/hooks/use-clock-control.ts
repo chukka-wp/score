@@ -1,12 +1,14 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { EventType, GameState, RuleSet, TeamSide } from '@/types';
 
 type UseClockControlReturn = {
     toggleClock: () => void;
     setPossession: (team: TeamSide) => void;
-    resetPossessionClock: (seconds: number) => void;
+    resetPossessionClock: (seconds: number, reason?: string) => void;
     isClockRunning: boolean;
+    periodClockSeconds: number;
+    possessionClockSeconds: number | null;
 };
 
 export function useClockControl(
@@ -20,6 +22,38 @@ export function useClockControl(
     }) => Promise<string>,
 ): UseClockControlReturn {
     const [isClockRunning, setIsClockRunning] = useState(false);
+    const [periodClock, setPeriodClock] = useState(gameState.period_clock_seconds);
+    const [possessionClock, setPossessionClock] = useState(gameState.possession_clock_seconds);
+    const lastTickRef = useRef(performance.now());
+
+    // Sync from server state when it changes
+    useEffect(() => {
+        setPeriodClock(gameState.period_clock_seconds);
+        setPossessionClock(gameState.possession_clock_seconds);
+    }, [gameState.period_clock_seconds, gameState.possession_clock_seconds]);
+
+    // Tick clocks down when running
+    useEffect(() => {
+        if (!isClockRunning) {
+            return;
+        }
+
+        lastTickRef.current = performance.now();
+
+        const interval = setInterval(() => {
+            const now = performance.now();
+            const elapsed = (now - lastTickRef.current) / 1000;
+            lastTickRef.current = now;
+
+            setPeriodClock((prev) => Math.max(0, prev - elapsed));
+
+            if (ruleSet.possession_clock_enabled) {
+                setPossessionClock((prev) => (prev !== null ? Math.max(0, prev - elapsed) : null));
+            }
+        }, 100);
+
+        return () => clearInterval(interval);
+    }, [isClockRunning, ruleSet.possession_clock_enabled]);
 
     const toggleClock = useCallback(() => {
         if (ruleSet.running_time) {
@@ -34,32 +68,34 @@ export function useClockControl(
             enqueueEvent({
                 type: 'possession_change',
                 period: gameState.current_period,
-                period_clock_seconds: gameState.period_clock_seconds,
+                period_clock_seconds: Math.round(periodClock),
                 payload: { team_side: team },
             });
         },
-        [gameState, enqueueEvent],
+        [gameState.current_period, periodClock, enqueueEvent],
     );
 
     const resetPossessionClock = useCallback(
-        (seconds: number) => {
+        (seconds: number, reason?: string) => {
             if (!ruleSet.possession_clock_enabled) {
                 return;
             }
 
-            const reason =
-                seconds === ruleSet.second_possession_time_seconds
+            setPossessionClock(seconds);
+
+            const resolvedReason = reason
+                ?? (seconds === ruleSet.second_possession_time_seconds
                     ? 'shot_rebound_attacking'
-                    : 'new_possession';
+                    : 'new_possession');
 
             enqueueEvent({
                 type: 'possession_clock_reset',
                 period: gameState.current_period,
-                period_clock_seconds: gameState.period_clock_seconds,
-                payload: { reason, seconds },
+                period_clock_seconds: Math.round(periodClock),
+                payload: { reason: resolvedReason, seconds },
             });
         },
-        [gameState, ruleSet, enqueueEvent],
+        [gameState.current_period, periodClock, ruleSet, enqueueEvent],
     );
 
     return {
@@ -67,5 +103,7 @@ export function useClockControl(
         setPossession,
         resetPossessionClock,
         isClockRunning,
+        periodClockSeconds: Math.round(periodClock),
+        possessionClockSeconds: possessionClock !== null ? Math.round(possessionClock) : null,
     };
 }

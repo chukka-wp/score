@@ -1,3 +1,5 @@
+import { useCallback, useState } from 'react';
+
 import { formatClock, formatEventType } from '@/lib/format';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,6 +28,35 @@ type Props = {
     onVoid: (eventId: string) => void;
 };
 
+function VoidButton({ eventId, onVoid }: { eventId: string; onVoid: (id: string) => void }) {
+    const [confirming, setConfirming] = useState(false);
+
+    const handleClick = useCallback(() => {
+        if (confirming) {
+            onVoid(eventId);
+            setConfirming(false);
+        } else {
+            setConfirming(true);
+        }
+    }, [confirming, eventId, onVoid]);
+
+    const handleBlur = useCallback(() => {
+        setConfirming(false);
+    }, []);
+
+    return (
+        <Button
+            variant="destructive"
+            size="xs"
+            className="ml-auto shrink-0"
+            onClick={handleClick}
+            onBlur={handleBlur}
+        >
+            {confirming ? 'Confirm?' : 'Void'}
+        </Button>
+    );
+}
+
 export function EventHistory({ events, open, onClose, onVoid }: Props) {
     return (
         <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -36,9 +67,9 @@ export function EventHistory({ events, open, onClose, onVoid }: Props) {
 
                 <ScrollArea className="max-h-[60vh]">
                     {events.length === 0 ? (
-                        <p className="py-4 text-center text-sm text-muted-foreground">
+                        <div className="py-4 text-center text-sm text-muted-foreground">
                             No events recorded
-                        </p>
+                        </div>
                     ) : (
                         <div className="space-y-1 pr-4">
                             {events.map((event) => {
@@ -50,36 +81,29 @@ export function EventHistory({ events, open, onClose, onVoid }: Props) {
                                         key={event.id}
                                         className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted/50"
                                     >
-                                        <span className="w-10 shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                                        <div className="w-10 shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
                                             Q{event.period}
-                                        </span>
+                                        </div>
 
-                                        <span className="w-14 shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                                        <div className="w-14 shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
                                             {formatClock(event.period_clock_seconds)}
-                                        </span>
+                                        </div>
 
                                         <Badge variant="outline" className="shrink-0">
                                             {formatEventType(event.type as EventType)}
                                         </Badge>
 
                                         {capNumber !== undefined && (
-                                            <span className="font-mono text-xs tabular-nums">#{capNumber}</span>
+                                            <div className="font-mono text-xs tabular-nums">#{capNumber}</div>
                                         )}
 
                                         {teamSide && (
-                                            <span className="text-xs text-muted-foreground">
+                                            <div className="text-xs text-muted-foreground">
                                                 {teamSide === 'white' ? 'W' : 'B'}
-                                            </span>
+                                            </div>
                                         )}
 
-                                        <Button
-                                            variant="destructive"
-                                            size="xs"
-                                            className="ml-auto shrink-0"
-                                            onClick={() => onVoid(event.id)}
-                                        >
-                                            Void
-                                        </Button>
+                                        <VoidButton eventId={event.id} onVoid={onVoid} />
                                     </div>
                                 );
                             })}

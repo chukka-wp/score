@@ -41,23 +41,20 @@ export function EventRow({ event, showUndo, onUndo }: Props) {
 
     return (
         <div className="flex items-center gap-2 py-1 text-sm">
-            <span className="w-14 shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+            <div className="w-14 shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
                 {formatClock(event.period_clock_seconds)}
-            </span>
+            </div>
 
             <Badge variant={getBadgeVariant(event.type)}>
                 {formatEventType(event.type as EventType)}
             </Badge>
 
             {capNumber !== undefined && (
-                <span className="font-mono text-xs tabular-nums">#{capNumber}</span>
+                <div className="font-mono text-xs tabular-nums">#{capNumber}</div>
             )}
 
             {teamSide && (
-                <Badge
-                    variant="outline"
-                    className="text-[10px]"
-                >
+                <Badge variant="outline" className="text-[0.625rem]">
                     {teamSide === 'white' ? 'W' : 'B'}
                 </Badge>
             )}

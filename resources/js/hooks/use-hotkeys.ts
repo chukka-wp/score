@@ -5,6 +5,7 @@ import type { EventType, GameState, TeamSide } from '@/types';
 type EventEntryActions = {
     startEvent: (type: EventType) => void;
     appendDigit: (digit: number) => void;
+    deleteDigit: () => void;
     setTeam: (team: TeamSide) => void;
     setOutcome: (outcome: string) => void;
     confirm: () => void;
@@ -78,11 +79,18 @@ export function useHotkeys(
                 return;
             }
 
-            // Awaiting cap: digits
+            // Awaiting cap: digits + backspace
             if (step === 'awaiting_cap') {
                 if (e.key >= '0' && e.key <= '9') {
                     e.preventDefault();
                     eventEntry.appendDigit(parseInt(e.key, 10));
+
+                    return;
+                }
+
+                if (e.key === 'Backspace') {
+                    e.preventDefault();
+                    eventEntry.deleteDigit();
 
                     return;
                 }
@@ -113,7 +121,7 @@ export function useHotkeys(
                 }
             }
 
-            // Awaiting outcome: G/M/V
+            // Awaiting outcome: G/M/V/B
             if (step === 'awaiting_outcome') {
                 switch (e.key.toLowerCase()) {
                     case 'g':
@@ -129,6 +137,11 @@ export function useHotkeys(
                     case 'v':
                         e.preventDefault();
                         eventEntry.setOutcome('saved');
+
+                        return;
+                    case 'b':
+                        e.preventDefault();
+                        eventEntry.setOutcome('blocked');
 
                         return;
                 }
@@ -193,6 +206,21 @@ export function useHotkeys(
                         case 'r':
                             e.preventDefault();
                             eventEntry.startEvent('red_card');
+
+                            return;
+                        case 'x':
+                            e.preventDefault();
+                            eventEntry.startEvent('shot');
+
+                            return;
+                        case 'c':
+                            e.preventDefault();
+                            eventEntry.startEvent('free_throw');
+
+                            return;
+                        case 'd':
+                            e.preventDefault();
+                            eventEntry.startEvent('two_meter_throw');
 
                             return;
                         case 'q':

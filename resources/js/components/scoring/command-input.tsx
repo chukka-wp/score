@@ -1,13 +1,14 @@
+import { formatEventType } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
-import type { EventEntryState } from '@/types';
+import type { EventEntryState, EventType } from '@/types';
 
 type Props = {
     entryState: EventEntryState;
     playerPreview: string | null;
 };
 
-const EVENT_TYPE_ABBREVS: Record<string, string> = {
+const EVENT_HOTKEYS: Partial<Record<EventType, string>> = {
     goal: 'G',
     exclusion_foul: 'E',
     ordinary_foul: 'F',
@@ -17,42 +18,53 @@ const EVENT_TYPE_ABBREVS: Record<string, string> = {
     substitution: 'S',
     yellow_card: 'Y',
     red_card: 'R',
-    corner_throw: 'C',
-    neutral_throw: 'N',
-    goal_throw: 'GT',
-    violent_action_exclusion: 'VA',
-    misconduct_exclusion: 'MC',
-    possession_change: 'PC',
+    shot: 'X',
+    free_throw: 'C',
+    two_meter_throw: 'D',
     shootout_shot: 'O',
 };
 
-function getAbbrev(eventType: string | null): string | null {
-    if (!eventType) {
-        return null;
+function StepHint({ step }: { step: string }) {
+    switch (step) {
+        case 'awaiting_cap':
+            return <span className="text-muted-foreground">Cap #?</span>;
+        case 'awaiting_team':
+            return <span className="text-muted-foreground">Team?</span>;
+        case 'awaiting_outcome':
+            return <span className="text-muted-foreground">V/M/B?</span>;
+        case 'awaiting_confirm':
+            return <span className="text-muted-foreground">Enter ✓</span>;
+        default:
+            return <span className="animate-pulse text-muted-foreground">_</span>;
     }
-
-    return EVENT_TYPE_ABBREVS[eventType] ?? eventType.charAt(0).toUpperCase();
 }
 
 export function CommandInput({ entryState, playerPreview }: Props) {
-    const { step, eventType, capNumber, team } = entryState;
-    const abbrev = getAbbrev(eventType);
-    const isIdle = step === 'idle';
-    const isConfirm = step === 'awaiting_confirm';
+    const { step, eventType, capNumber, team, outcome } = entryState;
+    const label = eventType ? formatEventType(eventType) : null;
+    const hotkey = eventType ? EVENT_HOTKEYS[eventType] ?? null : null;
 
     return (
-        <div className="flex items-center gap-2 rounded-lg bg-card px-4 py-3 font-mono text-sm">
+        <div className="flex items-center gap-1.5 rounded-lg bg-card px-4 py-3 font-mono text-sm ring-1 ring-transparent transition-shadow focus-within:ring-primary">
             {/* Prompt character */}
             <span className="text-muted-foreground">&gt;</span>
 
-            {/* Event type abbreviation */}
-            {abbrev && (
-                <span className="font-bold text-foreground">{abbrev}</span>
+            {/* Event type: hotkey + label */}
+            {eventType && (
+                <>
+                    {hotkey && <span className="font-bold text-foreground">{hotkey}</span>}
+                    <span className="text-muted-foreground">{label}</span>
+                </>
             )}
 
-            {/* Cap number */}
+            {/* Cap number + player name */}
             {capNumber && (
-                <span className="tabular-nums text-foreground">{capNumber}</span>
+                <>
+                    <span className="tabular-nums text-foreground">{capNumber}</span>
+                    {playerPreview && (
+                        <span className="text-muted-foreground">{playerPreview}</span>
+                    )}
+                </>
             )}
 
             {/* Team identifier */}
@@ -63,26 +75,19 @@ export function CommandInput({ entryState, playerPreview }: Props) {
                         team === 'white' ? 'text-team-white-foreground' : 'text-team-blue-foreground',
                     )}
                 >
-                    {team === 'white' ? 'W' : 'B'}
+                    {team === 'white' ? 'W White' : 'B Blue'}
                 </span>
             )}
 
-            {/* Player name preview */}
-            {playerPreview && (
-                <span className="italic text-muted-foreground">{playerPreview}</span>
+            {/* Outcome */}
+            {outcome && (
+                <span className="text-foreground capitalize">{outcome}</span>
             )}
 
-            {/* Confirm hint */}
-            {isConfirm && (
-                <span className="ml-2 text-xs text-muted-foreground">
-                    Press Enter to confirm
-                </span>
-            )}
-
-            {/* Flashing cursor when idle */}
-            {isIdle && (
-                <span className="animate-pulse text-muted-foreground">_</span>
-            )}
+            {/* Step hint */}
+            <div className="ml-auto text-xs">
+                <StepHint step={step} />
+            </div>
         </div>
     );
 }

@@ -19,18 +19,18 @@ export function RecentEvents({ events, onUndo }: Props) {
     if (displayed.length === 0) {
         return (
             <div className="rounded-lg bg-card p-4">
-                <p className="text-xs text-muted-foreground">No events yet</p>
+                <div className="text-xs text-muted-foreground">No events yet</div>
             </div>
         );
     }
 
     return (
         <div className="rounded-lg bg-card p-4">
-            <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <div className="mb-2 font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Recent Events
             </div>
 
-            <div className="space-y-0.5">
+            <div className="space-y-1.5">
                 {displayed.map((event, index) => (
                     <EventRow
                         key={event.id}
