@@ -32,6 +32,7 @@ export default function MatchesIndex({ team, matches }: Props) {
                 </PageHeader>
 
                 {matches?.length > 0 ? (
+                    <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -66,6 +67,7 @@ export default function MatchesIndex({ team, matches }: Props) {
                             ))}
                         </TableBody>
                     </Table>
+                    </div>
                 ) : (
                     <EmptyState
                         icon={CalendarIcon}

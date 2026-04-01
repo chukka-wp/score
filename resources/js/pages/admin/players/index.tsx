@@ -28,6 +28,7 @@ export default function PlayersIndex({ players }: Props) {
                 </PageHeader>
 
                 {players?.length > 0 ? (
+                    <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -58,6 +59,7 @@ export default function PlayersIndex({ players }: Props) {
                             ))}
                         </TableBody>
                     </Table>
+                    </div>
                 ) : (
                     <EmptyState
                         icon={UsersIcon}

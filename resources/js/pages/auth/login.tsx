@@ -21,9 +21,18 @@ export default function Login() {
             <Head title="Log in" />
             <div className="flex min-h-svh items-center justify-center p-4">
                 <Card className="w-full max-w-sm space-y-6 p-6">
-                    <div className="space-y-1 text-center">
-                        <h1 className="text-2xl font-semibold tracking-tight">Chukka Score</h1>
-                        <p className="text-muted-foreground text-sm">Sign in with your manager account</p>
+                    <div className="flex flex-col items-center gap-3 text-center">
+                        <img
+                            src="/images/logo-icon-96.png"
+                            alt="Chukka"
+                            className="size-12"
+                            width={96}
+                            height={96}
+                        />
+                        <div className="space-y-1">
+                            <h1 className="text-2xl font-semibold tracking-tight">Chukka Score</h1>
+                            <p className="text-muted-foreground text-sm">Sign in with your manager account</p>
+                        </div>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4">

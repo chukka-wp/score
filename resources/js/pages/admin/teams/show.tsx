@@ -1,9 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
-import { CalendarIcon, PlusIcon, UsersIcon } from 'lucide-react';
+import { BarChart3Icon, CalendarIcon, PlusIcon, ShieldIcon, TargetIcon, UsersIcon } from 'lucide-react';
 
 import { EmptyState } from '@/components/admin/empty-state';
 import { MatchStatusBadge } from '@/components/admin/match-status-badge';
 import { PageHeader } from '@/components/admin/page-header';
+import { StatCard } from '@/components/admin/stat-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -43,6 +44,7 @@ export default function TeamsShow({ team, roster, matches, stats }: Props) {
 
                     <TabsContent value="roster" className="space-y-4">
                         {roster?.length > 0 ? (
+                            <div className="overflow-x-auto">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -87,6 +89,7 @@ export default function TeamsShow({ team, roster, matches, stats }: Props) {
                                     ))}
                                 </TableBody>
                             </Table>
+                            </div>
                         ) : (
                             <EmptyState
                                 icon={UsersIcon}
@@ -106,6 +109,7 @@ export default function TeamsShow({ team, roster, matches, stats }: Props) {
                             </Button>
                         </div>
                         {matches?.length > 0 ? (
+                            <div className="overflow-x-auto">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -140,6 +144,7 @@ export default function TeamsShow({ team, roster, matches, stats }: Props) {
                                     ))}
                                 </TableBody>
                             </Table>
+                            </div>
                         ) : (
                             <EmptyState
                                 icon={CalendarIcon}
@@ -160,22 +165,10 @@ export default function TeamsShow({ team, roster, matches, stats }: Props) {
                     <TabsContent value="stats" className="space-y-4">
                         {stats ? (
                             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                                <div className="rounded-lg border p-4">
-                                    <p className="text-muted-foreground text-sm">Matches Played</p>
-                                    <p className="text-2xl font-semibold">{stats.matches_played ?? 0}</p>
-                                </div>
-                                <div className="rounded-lg border p-4">
-                                    <p className="text-muted-foreground text-sm">Wins</p>
-                                    <p className="text-2xl font-semibold">{stats.wins ?? 0}</p>
-                                </div>
-                                <div className="rounded-lg border p-4">
-                                    <p className="text-muted-foreground text-sm">Goals For</p>
-                                    <p className="text-2xl font-semibold">{stats.goals_for ?? 0}</p>
-                                </div>
-                                <div className="rounded-lg border p-4">
-                                    <p className="text-muted-foreground text-sm">Goals Against</p>
-                                    <p className="text-2xl font-semibold">{stats.goals_against ?? 0}</p>
-                                </div>
+                                <StatCard label="Matches Played" value={stats.matches_played ?? 0} icon={CalendarIcon} />
+                                <StatCard label="Wins" value={stats.wins ?? 0} icon={ShieldIcon} />
+                                <StatCard label="Goals For" value={stats.goals_for ?? 0} icon={TargetIcon} />
+                                <StatCard label="Goals Against" value={stats.goals_against ?? 0} icon={BarChart3Icon} />
                             </div>
                         ) : (
                             <EmptyState

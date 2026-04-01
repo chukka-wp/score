@@ -6,6 +6,7 @@ import { FormField } from '@/components/admin/form/form-field';
 import { PageHeader } from '@/components/admin/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import AdminLayout from '@/layouts/admin-layout';
@@ -64,16 +65,16 @@ export default function ClubSettings({ club, ruleSets }: Props) {
                                 error={form.errors.short_name}
                             />
                             <div className="space-y-2">
-                                <label htmlFor="primary_colour" className="text-sm font-medium">
+                                <Label htmlFor="primary_colour">
                                     Primary Colour
-                                </label>
+                                </Label>
                                 <div className="flex items-center gap-3">
                                     <input
                                         id="primary_colour"
                                         type="color"
                                         value={form.data.primary_colour}
                                         onChange={(e) => form.setData('primary_colour', e.target.value)}
-                                        className="h-8 w-12 cursor-pointer rounded border"
+                                        className="h-8 w-12 cursor-pointer rounded border border-border"
                                     />
                                     <span className="text-muted-foreground text-sm">
                                         {form.data.primary_colour}
@@ -104,6 +105,7 @@ export default function ClubSettings({ club, ruleSets }: Props) {
                     </CardHeader>
                     <CardContent>
                         {ruleSets?.length > 0 ? (
+                            <div className="overflow-x-auto">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -145,6 +147,7 @@ export default function ClubSettings({ club, ruleSets }: Props) {
                                     ))}
                                 </TableBody>
                             </Table>
+                            </div>
                         ) : (
                             <EmptyState
                                 icon={BookOpenIcon}

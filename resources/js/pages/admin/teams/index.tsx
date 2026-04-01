@@ -28,6 +28,7 @@ export default function TeamsIndex({ teams }: Props) {
                 </PageHeader>
 
                 {teams?.length > 0 ? (
+                    <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -56,6 +57,7 @@ export default function TeamsIndex({ teams }: Props) {
                             ))}
                         </TableBody>
                     </Table>
+                    </div>
                 ) : (
                     <EmptyState
                         icon={ShieldIcon}

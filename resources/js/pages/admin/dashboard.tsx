@@ -36,7 +36,7 @@ export default function Dashboard({ club, teams, user }: Props) {
                     {teams?.length > 0 ? (
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             {teams.map((team: any) => (
-                                <Link key={team.id} href={teamShow.url(team.id)}>
+                                <Link key={team.id} href={teamShow.url(team.id)} className="rounded-lg focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none">
                                     <Card className="transition-colors hover:bg-muted/50">
                                         <CardHeader>
                                             <CardTitle>{team.name}</CardTitle>
