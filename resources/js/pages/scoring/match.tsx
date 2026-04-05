@@ -348,6 +348,8 @@ export default function ScoringMatch({
                     awayTimeoutsRemaining={gameState.away_timeouts_remaining}
                     totalTimeouts={rule_set.timeouts_per_team}
                     isClockRunning={clockControl.isClockRunning}
+                    isPossessionPaused={clockControl.isPossessionPaused}
+                    isRunningTime={rule_set.running_time}
                     sidesSwapped={session.sidesSwapped}
                 />
 

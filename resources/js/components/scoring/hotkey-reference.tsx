@@ -51,7 +51,8 @@ const HOTKEY_CATEGORIES: HotkeyCategory[] = [
     {
         label: 'Clock',
         keys: [
-            { key: 'Space', description: 'Start / Stop clock' },
+            { key: 'Space', description: 'Start / Stop clock (possession only in RT)' },
+            { key: 'Shift+Space', description: 'Start / Stop period clock' },
             { key: ']', description: 'Reset possession clock (full)' },
             { key: '[', description: 'Reset possession clock (reduced)' },
         ],

@@ -16,6 +16,8 @@ type Props = {
     awayTimeoutsRemaining: number;
     totalTimeouts: number;
     isClockRunning: boolean;
+    isPossessionPaused: boolean;
+    isRunningTime: boolean;
     sidesSwapped: boolean;
 };
 
@@ -79,6 +81,8 @@ export function ScoreHeader({
     awayTimeoutsRemaining,
     totalTimeouts,
     isClockRunning,
+    isPossessionPaused,
+    isRunningTime,
     sidesSwapped,
 }: Props) {
     const leftTeam = sidesSwapped ? 'away' : 'home';
@@ -113,8 +117,15 @@ export function ScoreHeader({
 
                 {/* Center clock area */}
                 <div className="flex min-w-0 flex-col items-center gap-1">
-                    <div className="rounded bg-muted px-2 py-0.5 text-sm font-medium text-foreground">
-                        {formatPeriod(currentPeriod)}
+                    <div className="flex items-center gap-1.5">
+                        <div className="rounded bg-muted px-2 py-0.5 text-sm font-medium text-foreground">
+                            {formatPeriod(currentPeriod)}
+                        </div>
+                        {isRunningTime && (
+                            <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+                                RT
+                            </span>
+                        )}
                     </div>
                     <div
                         className={cn(
@@ -128,7 +139,7 @@ export function ScoreHeader({
                         <div
                             className={cn(
                                 'font-mono tabular-nums sm:text-lg',
-                                isClockRunning ? 'text-clock' : 'text-clock-stopped',
+                                isClockRunning && !isPossessionPaused ? 'text-clock' : 'text-clock-stopped',
                             )}
                         >
                             {formatShortClock(possessionClockSeconds)}

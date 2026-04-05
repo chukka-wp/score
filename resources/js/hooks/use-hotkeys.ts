@@ -22,6 +22,7 @@ type EventEntryActions = {
 
 type ClockActions = {
     toggleClock: () => void;
+    togglePossession: () => void;
     setPossession: (team: TeamSide) => void;
     resetPossessionClock: (seconds: number) => void;
 };
@@ -39,7 +40,7 @@ export function useHotkeys(
     gameState: GameState,
     isShootoutMode: boolean,
     modals: ModalActions,
-    ruleSet: { possession_time_seconds: number; second_possession_time_seconds: number },
+    ruleSet: { running_time: boolean; possession_time_seconds: number; second_possession_time_seconds: number },
     sidesSwapped: boolean,
 ): void {
     useEffect(() => {
@@ -262,10 +263,23 @@ export function useHotkeys(
                     }
                 }
 
-                // Clock and possession (always available when idle)
-                if (e.key === ' ') {
+                // Shift+Space: toggle period clock (both modes)
+                if (e.key === ' ' && e.shiftKey) {
                     e.preventDefault();
                     clockControl.toggleClock();
+
+                    return;
+                }
+
+                // Space: toggle both clocks (stopped time) or possession only (running time)
+                if (e.key === ' ') {
+                    e.preventDefault();
+
+                    if (ruleSet.running_time) {
+                        clockControl.togglePossession();
+                    } else {
+                        clockControl.toggleClock();
+                    }
 
                     return;
                 }
