@@ -10,13 +10,13 @@ type Exclusion = {
 
 type Props = {
     exclusions: Exclusion[];
-    homeTeamId: string;
+    homeExternalTeamId: string;
     sidesSwapped: boolean;
 };
 
-export function ExclusionPanel({ exclusions, homeTeamId, sidesSwapped }: Props) {
-    const homeExclusions = exclusions.filter((e) => e.team_id === homeTeamId);
-    const awayExclusions = exclusions.filter((e) => e.team_id !== homeTeamId);
+export function ExclusionPanel({ exclusions, homeExternalTeamId, sidesSwapped }: Props) {
+    const homeExclusions = exclusions.filter((e) => e.team_id === homeExternalTeamId);
+    const awayExclusions = exclusions.filter((e) => e.team_id !== homeExternalTeamId);
 
     if (exclusions.length === 0) {
         return null;

@@ -33,8 +33,8 @@ class MatchController extends Controller
         return Inertia::render('scoring/match', [
             'match' => $matchData,
             'game_state' => $state,
-            'home_roster' => $this->filterRoster($roster, $matchData, 'home'),
-            'away_roster' => $this->filterRoster($roster, $matchData, 'away'),
+            'home_roster' => $this->filterRoster($roster, 'home'),
+            'away_roster' => $this->filterRoster($roster, 'away'),
             'events' => $events,
             'rule_set' => $ruleSet,
             'scorer_token' => $scorerToken,
@@ -47,13 +47,11 @@ class MatchController extends Controller
         ]);
     }
 
-    private function filterRoster(array $roster, array $match, string $side): array
+    private function filterRoster(array $roster, string $side): array
     {
-        $teamId = $match["{$side}_team_id"] ?? '';
-
         return array_values(array_filter(
             $roster,
-            fn (array $entry) => ($entry['team_id'] ?? '') === $teamId,
+            fn (array $entry) => ($entry['side'] ?? '') === $side,
         ));
     }
 }

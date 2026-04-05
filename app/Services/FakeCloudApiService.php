@@ -251,10 +251,13 @@ class FakeCloudApiService extends CloudApiService
                 'rule_set_id' => 'rs-fina2025',
                 'scheduled_at' => now()->addDays(3)->toIso8601String(),
                 'venue' => 'Newcastle Olympic Pool',
-                'home_team_id' => $teamId,
-                'away_team_id' => 'opponent-1',
+                'home_team_name' => 'NPWPC U16B',
+                'away_team_name' => 'Cronulla U16B',
                 'home_cap_colour' => 'white',
                 'away_cap_colour' => 'dark',
+                'home_external_team_id' => $teamId,
+                'away_external_team_id' => 'opponent-1',
+                'external_club_id' => $this->clubId,
                 'status' => 'scheduled',
                 'live_url' => null,
             ],
@@ -273,10 +276,13 @@ class FakeCloudApiService extends CloudApiService
             'rule_set_id' => 'rs-fina2025',
             'scheduled_at' => now()->toIso8601String(),
             'venue' => 'Newcastle Olympic Pool',
-            'home_team_id' => 'team-u16b',
-            'away_team_id' => 'opponent-1',
+            'home_team_name' => 'NPWPC U16B',
+            'away_team_name' => 'Cronulla U16B',
             'home_cap_colour' => 'white',
             'away_cap_colour' => 'dark',
+            'home_external_team_id' => 'team-u16b',
+            'away_external_team_id' => 'opponent-1',
+            'external_club_id' => $this->clubId,
             'status' => 'in_progress',
             'live_url' => null,
         ];
@@ -310,23 +316,25 @@ class FakeCloudApiService extends CloudApiService
     public function getRoster(?string $token, string $matchId): array
     {
         $homeRoster = array_map(fn (array $player, int $i) => [
+            'id' => $i + 1,
             'match_id' => $matchId,
-            'player_id' => $player['id'],
-            'team_id' => 'team-u16b',
+            'side' => 'home',
             'cap_number' => $player['preferred_cap_number'],
-            'is_starting' => $i < 7,
+            'player_name' => $player['preferred_name'] ?? $player['name'],
             'role' => $player['is_goalkeeper'] ? 'goalkeeper' : 'field_player',
-            'player' => $player,
+            'is_starting' => $i < 7,
+            'external_player_id' => $player['id'],
         ], array_slice($this->players, 0, 13), range(0, 12));
 
         $awayRoster = array_map(fn (array $player, int $i) => [
+            'id' => $i + 14,
             'match_id' => $matchId,
-            'player_id' => $player['id'],
-            'team_id' => 'opponent-1',
+            'side' => 'away',
             'cap_number' => $player['preferred_cap_number'],
-            'is_starting' => $i < 7,
+            'player_name' => $player['preferred_name'] ?? $player['name'],
             'role' => $player['is_goalkeeper'] ? 'goalkeeper' : 'field_player',
-            'player' => $player,
+            'is_starting' => $i < 7,
+            'external_player_id' => $player['id'],
         ], array_slice($this->opponentPlayers, 0, 13), range(0, 12));
 
         return array_merge($homeRoster, $awayRoster);

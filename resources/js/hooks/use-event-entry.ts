@@ -206,7 +206,7 @@ export function useEventEntry(
             const roster = team === 'blue' ? awayRoster : homeRoster;
             const entry = roster.find((r) => r.cap_number === cap);
 
-            return entry?.player?.name ?? entry?.player?.preferred_name ?? null;
+            return entry?.player_name ?? null;
         },
         [homeRoster, awayRoster],
     );

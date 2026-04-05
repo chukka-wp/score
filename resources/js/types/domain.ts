@@ -1,48 +1,18 @@
 export type UUID = string;
 export type ISODateTime = string;
 
-export type Club = {
-    id: UUID;
-    name: string;
-    short_name: string;
-    logo_url: string | null;
-    primary_colour: string;
-};
-
-export type Team = {
-    id: UUID;
-    club_id: UUID;
-    name: string;
-    short_name: string;
-    gender: 'male' | 'female' | 'mixed';
-    age_group: string;
-};
-
-export type Player = {
-    id: UUID;
-    club_id: UUID;
-    name: string;
-    preferred_name: string | null;
-    preferred_cap_number: number | null;
-    is_goalkeeper: boolean;
-};
-
-export type TeamMembership = {
-    player_id: UUID;
-    team_id: UUID;
-    joined_at: ISODateTime;
-    left_at: ISODateTime | null;
-};
-
 export type Match = {
     id: UUID;
     rule_set_id: UUID;
     scheduled_at: ISODateTime;
     venue: string;
-    home_team_id: UUID;
-    away_team_id: UUID;
+    home_team_name: string;
+    away_team_name: string;
     home_cap_colour: string;
     away_cap_colour: string;
+    home_external_team_id: string | null;
+    away_external_team_id: string | null;
+    external_club_id: string | null;
     status: MatchStatus;
     live_url: string | null;
 };
@@ -75,13 +45,14 @@ export type RuleSet = {
 };
 
 export type RosterEntry = {
+    id: number;
     match_id: UUID;
-    player_id: UUID;
-    team_id: UUID;
+    side: 'home' | 'away';
     cap_number: number;
-    is_starting: boolean;
+    player_name: string;
     role: RosterRole;
-    player?: Player;
+    is_starting: boolean;
+    external_player_id: string | null;
 };
 
 export type RosterRole = 'field_player' | 'goalkeeper' | 'substitute_goalkeeper';

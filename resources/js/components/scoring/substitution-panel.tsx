@@ -117,14 +117,15 @@ export function SubstitutionPanel({ roster, team, inWaterIds, maxInWater, open, 
                 <div className="min-h-0 flex-1 overflow-y-auto">
                     <div className="flex flex-col gap-1.5">
                         {sortedRoster.map((entry) => {
-                            const isIn = localInWater.has(entry.player_id);
+                            const rosterId = String(entry.id);
+                            const isIn = localInWater.has(rosterId);
                             const isGk = entry.role === 'goalkeeper' || entry.role === 'substitute_goalkeeper';
 
                             return (
                                 <button
-                                    key={entry.player_id}
+                                    key={entry.id}
                                     type="button"
-                                    onClick={() => toggle(entry.player_id)}
+                                    onClick={() => toggle(rosterId)}
                                     className={cn(
                                         'flex items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors',
                                         isIn
@@ -149,7 +150,7 @@ export function SubstitutionPanel({ roster, team, inWaterIds, maxInWater, open, 
 
                                     {/* Player name */}
                                     <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                                        {entry.player?.name ?? entry.player?.preferred_name ?? '—'}
+                                        {entry.player_name || '—'}
                                     </span>
 
                                     {/* GK badge */}

@@ -23,7 +23,8 @@ type Props = {
 };
 
 type PlayerRow = {
-    player_id: UUID;
+    roster_id: number;
+    external_player_id: string | null;
     cap_number: number;
     name: string;
     isGoalkeeper: boolean;
@@ -100,19 +101,21 @@ function derivePlayerRows(
             return a.cap_number - b.cap_number;
         })
         .map((entry) => {
-            const fouls = foulCounts[entry.player_id] ?? 0;
+            const playerId = entry.external_player_id ?? '';
+            const fouls = playerId ? (foulCounts[playerId] ?? 0) : 0;
 
             return {
-                player_id: entry.player_id,
+                roster_id: entry.id,
+                external_player_id: entry.external_player_id,
                 cap_number: entry.cap_number,
-                name: entry.player?.preferred_name ?? entry.player?.name ?? '',
+                name: entry.player_name,
                 isGoalkeeper: entry.role === 'goalkeeper' || entry.role === 'substitute_goalkeeper',
-                isInWater: inWaterIds.has(entry.player_id),
+                isInWater: inWaterIds.has(String(entry.id)),
                 goals: goalCounts.get(entry.cap_number) ?? 0,
                 fouls,
-                isFouledOut: fouls >= foulLimit && excludedForGame.includes(entry.player_id),
-                isExcludedForGame: excludedForGame.includes(entry.player_id),
-                activeExclusion: exclusionTimers.find((ex) => ex.player_id === entry.player_id) ?? null,
+                isFouledOut: fouls >= foulLimit && playerId !== '' && excludedForGame.includes(playerId),
+                isExcludedForGame: playerId !== '' && excludedForGame.includes(playerId),
+                activeExclusion: playerId ? (exclusionTimers.find((ex) => ex.player_id === playerId) ?? null) : null,
                 totalExclusions: exclusionCounts.get(entry.cap_number) ?? 0,
             };
         });
@@ -209,7 +212,7 @@ function TeamSection({
                     const isExcluded = !!player.activeExclusion;
 
                     return (
-                        <div key={player.player_id}>
+                        <div key={player.roster_id}>
                             <div
                                 role="button"
                                 tabIndex={0}
@@ -234,7 +237,7 @@ function TeamSection({
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        onToggleInWater(player.player_id, player.cap_number);
+                                        onToggleInWater(String(player.roster_id), player.cap_number);
                                     }}
                                     className={cn(
                                         'flex size-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors',

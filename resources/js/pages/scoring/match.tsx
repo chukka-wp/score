@@ -147,9 +147,12 @@ export default function ScoringMatch({
     const [scopeSelectorVisible, setScopeSelectorVisible] = useState(!session.teamScope);
 
     const inWaterByTeam = useMemo(() => {
-        const homeIn = new Set(home_roster.filter((r) => r.is_starting).map((r) => r.player_id));
-        const awayIn = new Set(away_roster.filter((r) => r.is_starting).map((r) => r.player_id));
-        const homePlayerIds = new Set(home_roster.map((r) => r.player_id));
+        // Track in-water state using roster entry IDs (stringified)
+        const homeCapToId = new Map(home_roster.map((r) => [r.cap_number, String(r.id)]));
+        const awayCapToId = new Map(away_roster.map((r) => [r.cap_number, String(r.id)]));
+
+        const homeIn = new Set(home_roster.filter((r) => r.is_starting).map((r) => String(r.id)));
+        const awayIn = new Set(away_roster.filter((r) => r.is_starting).map((r) => String(r.id)));
 
         for (const event of initialEvents) {
             if (event.type !== 'substitution' && event.type !== 'goalkeeper_substitution') {
@@ -157,19 +160,28 @@ export default function ScoringMatch({
             }
 
             const payload = event.payload as Record<string, unknown>;
-            const playerId = payload.player_id as string | undefined;
+            const capNumber = payload.cap_number as number | undefined;
+            const teamSide = payload.team_side as string | undefined;
 
-            if (!playerId) {
+            if (capNumber === undefined) {
                 continue;
             }
 
-            const targetSet = homePlayerIds.has(playerId) ? homeIn : awayIn;
+            const isHome = teamSide === 'white';
+            const capToId = isHome ? homeCapToId : awayCapToId;
+            const targetSet = isHome ? homeIn : awayIn;
+            const rosterId = capToId.get(capNumber);
+
+            if (!rosterId) {
+                continue;
+            }
+
             const action = payload.action as string | undefined;
 
             if (action === 'sub_off') {
-                targetSet.delete(playerId);
+                targetSet.delete(rosterId);
             } else if (action === 'sub_on') {
-                targetSet.add(playerId);
+                targetSet.add(rosterId);
             }
         }
 
@@ -257,9 +269,9 @@ export default function ScoringMatch({
     }
 
     const handleToggleInWater = useCallback(
-        (playerId: string, capNumber: number, team: 'white' | 'blue', action: 'sub_on' | 'sub_off') => {
+        (rosterId: string, capNumber: number, team: 'white' | 'blue', action: 'sub_on' | 'sub_off') => {
             const roster = team === 'blue' ? away_roster : home_roster;
-            const entry = roster.find((r) => r.player_id === playerId);
+            const entry = roster.find((r) => String(r.id) === rosterId);
             const isGk = entry?.role === 'goalkeeper' || entry?.role === 'substitute_goalkeeper';
 
             enqueueWithOptimism({
@@ -268,7 +280,6 @@ export default function ScoringMatch({
                 period_clock_seconds: gameState.period_clock_seconds,
                 payload: {
                     team_side: team,
-                    player_id: playerId,
                     cap_number: capNumber,
                     action,
                 },
@@ -413,7 +424,7 @@ export default function ScoringMatch({
                 <div className="lg:hidden">
                     <ExclusionPanel
                         exclusions={exclusionTimers}
-                        homeTeamId={match.home_team_id}
+                        homeExternalTeamId={match.home_external_team_id ?? ''}
                         sidesSwapped={session.sidesSwapped}
                     />
                 </div>
@@ -421,7 +432,7 @@ export default function ScoringMatch({
                 {/* Main scoring area */}
                 <div className="flex flex-1 flex-col overflow-hidden">
                     {isShootoutMode ? (
-                        <ShootoutPanel shootoutState={gameState.shootout_state} homeTeamId={match.home_team_id} />
+                        <ShootoutPanel shootoutState={gameState.shootout_state} homeExternalTeamId={match.home_external_team_id ?? ''} />
                     ) : (
                         <>
                             {/* Event Entry (keyboard) — always visible */}
