@@ -26,7 +26,7 @@ class MatchController extends Controller
         $events = $this->cloudApi->getEvents($scorerToken, $match);
 
         $ruleSet = $this->cloudApi->getRuleSet(
-            $scorerToken,
+            null,
             $matchData['rule_set_id'] ?? '',
         );
 
