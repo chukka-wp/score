@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 
-import { formatClock } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -11,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { formatClock } from '@/lib/format';
 
 type Props = {
     open: boolean;
@@ -49,6 +49,7 @@ export function TimingCorrectionModal({
     const [periodError, setPeriodError] = useState('');
     const [possessionError, setPossessionError] = useState('');
 
+    /* eslint-disable react-hooks/set-state-in-effect -- sync form state when modal opens */
     useEffect(() => {
         if (open) {
             setPeriodValue(formatClock(periodClockSeconds));
@@ -59,6 +60,7 @@ export function TimingCorrectionModal({
             setPossessionError('');
         }
     }, [open, periodClockSeconds, possessionClockSeconds]);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     function handleApply(): void {
         let hasError = false;

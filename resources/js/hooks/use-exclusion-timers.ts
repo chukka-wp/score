@@ -8,14 +8,16 @@ export type ExclusionTimerEntry = ActiveExclusion & {
 
 export function useExclusionTimers(activeExclusions: ActiveExclusion[]): ExclusionTimerEntry[] {
     const [timers, setTimers] = useState<ExclusionTimerEntry[]>([]);
-    const lastTickRef = useRef<number>(performance.now());
+    const lastTickRef = useRef<number>(0);
 
+    // Sync timers from server state — intentional setState-in-effect to reset on new data
     useEffect(() => {
         const entries = activeExclusions.map((ex) => ({
             ...ex,
             display_seconds: ex.remaining_seconds,
         }));
 
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setTimers(entries);
         lastTickRef.current = performance.now();
     }, [activeExclusions]);

@@ -1,5 +1,5 @@
-import { TooltipProvider } from '@/components/ui/tooltip';
 import { createInertiaApp } from '@inertiajs/react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import AuthLayout from '@/layouts/auth-layout';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Chukka Score';

@@ -117,7 +117,7 @@ export function useGameState(
     reverbConfig: ReverbConfig,
     scorerToken: string,
 ): UseGameStateReturn {
-    const [serverState, setServerState] = useState<GameState>(initialState);
+    const [, setServerState] = useState<GameState>(initialState);
     const [optimisticState, setOptimisticState] = useState<GameState>(initialState);
     const [isConnected, setIsConnected] = useState(false);
     const [lastConfirmation, setLastConfirmation] = useState<EventConfirmation | null>(null);

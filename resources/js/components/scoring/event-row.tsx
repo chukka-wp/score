@@ -1,6 +1,6 @@
-import { formatClock, formatEventType } from '@/lib/format';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { formatClock, formatEventType } from '@/lib/format';
 
 import type { EventType } from '@/types';
 

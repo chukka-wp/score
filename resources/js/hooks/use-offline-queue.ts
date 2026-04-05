@@ -52,6 +52,7 @@ export function useOfflineQueue(matchId: string, scorerToken: string): UseOfflin
                     headers: {
                         'Content-Type': 'application/json',
                         Accept: 'application/json',
+                        Authorization: `Bearer ${scorerToken}`,
                     },
                     body: JSON.stringify({
                         type: event.type,
@@ -85,7 +86,7 @@ export function useOfflineQueue(matchId: string, scorerToken: string): UseOfflin
                 return false;
             }
         },
-        [matchId, refreshCount],
+        [matchId, scorerToken, refreshCount],
     );
 
     const flush = useCallback(async () => {
@@ -120,6 +121,7 @@ export function useOfflineQueue(matchId: string, scorerToken: string): UseOfflin
                 headers: {
                     'Content-Type': 'application/json',
                     Accept: 'application/json',
+                    Authorization: `Bearer ${scorerToken}`,
                 },
                 body: JSON.stringify({ events }),
             });
@@ -134,7 +136,7 @@ export function useOfflineQueue(matchId: string, scorerToken: string): UseOfflin
         } finally {
             flushingRef.current = false;
         }
-    }, [matchId, isOnline, postEvent, refreshCount]);
+    }, [matchId, scorerToken, isOnline, postEvent, refreshCount]);
 
     useEffect(() => {
         if (isOnline && pendingCount > 0) {

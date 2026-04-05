@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 type Appearance = 'light' | 'dark';
 
 const STORAGE_KEY = 'chukka-appearance';
-const DEFAULT: Appearance = 'dark';
+const DEFAULT: Appearance = 'light';
 
 function applyAppearance(mode: Appearance): void {
     document.documentElement.classList.toggle('dark', mode === 'dark');
@@ -30,6 +30,7 @@ export function useAppearance(): [Appearance, (mode: Appearance) => void] {
 
     useEffect(() => {
         applyAppearance(appearance);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return [appearance, setAppearance];

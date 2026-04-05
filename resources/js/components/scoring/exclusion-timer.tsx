@@ -1,8 +1,8 @@
 import React from 'react';
 
+import { Badge } from '@/components/ui/badge';
 import { formatShortClock } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
 
 type Props = {
     capNumber: number;

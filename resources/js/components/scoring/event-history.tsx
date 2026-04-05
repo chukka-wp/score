@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
 
-import { formatClock, formatEventType } from '@/lib/format';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,6 +9,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { formatClock, formatEventType } from '@/lib/format';
 
 import type { EventType } from '@/types';
 

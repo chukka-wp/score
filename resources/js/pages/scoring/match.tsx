@@ -13,7 +13,6 @@ import { ScoreHeader } from '@/components/scoring/score-header';
 import { ScoresheetPanel } from '@/components/scoring/scoresheet-panel';
 import { ShootoutPanel } from '@/components/scoring/shootout-panel';
 import { SyncIndicator } from '@/components/scoring/sync-indicator';
-import { TeamScopeSelector } from '@/components/scoring/team-scope-selector';
 import { TimingCorrectionModal } from '@/components/scoring/timing-correction-modal';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -49,7 +48,8 @@ export default function ScoringMatch({
     scorer_token,
     reverb_config,
 }: Props) {
-    // Stabilise reverbConfig — Inertia props are stable but memoize to be safe
+    // Stabilise reverbConfig — only re-create when individual fields change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const stableReverbConfig = useMemo(() => reverb_config, [reverb_config.key, reverb_config.host, reverb_config.port, reverb_config.scheme]);
 
     const { gameState, applyOptimisticEvent } = useGameState(match.id, game_state, stableReverbConfig, '');
@@ -57,7 +57,7 @@ export default function ScoringMatch({
     const session = useScorerSession(scorer_token, match.id, gameState.current_period, rule_set.periods);
     const queue = useOfflineQueue(match.id, session.token);
 
-    const clockControlRef = useRef<ReturnType<typeof useClockControl>>(null!);
+    const clockControlRef = useRef<ReturnType<typeof useClockControl> | null>(null);
 
     const enqueueWithOptimism = useCallback(
         async (event: Parameters<typeof queue.enqueue>[0]) => {
@@ -99,7 +99,10 @@ export default function ScoringMatch({
     const eventEntry = useEventEntry(gameState, session.teamScope, home_roster, away_roster, enqueueWithOptimism, handleEventAccepted);
     const exclusionTimers = useExclusionTimers(gameState.active_exclusions);
     const clockControl = useClockControl(gameState, rule_set, enqueueWithOptimism);
-    clockControlRef.current = clockControl;
+
+    useEffect(() => {
+        clockControlRef.current = clockControl;
+    });
 
     // Audio alerts for clock expiry
     const prevPossessionRef = useRef(clockControl.possessionClockSeconds);
@@ -319,19 +322,72 @@ export default function ScoringMatch({
             <div className="flex h-full flex-col">
                 {/* Team scope selector overlay */}
                 {scopeSelectorVisible && (
-                    <div className="bg-background/80 absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
-                        <div className="space-y-4 text-center">
-                            <h2 className="text-xl font-semibold">Select your team</h2>
-                            <p className="text-muted-foreground text-sm">
-                                Choose your team for team-scoped scoring, or select Both for neutral scoring.
+                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-background">
+                        <div className="mx-auto w-full max-w-lg space-y-8 px-6 text-center">
+                            <div className="space-y-2">
+                                <h1 className="text-2xl font-bold tracking-tight">Welcome, Scorer</h1>
+                                <p className="text-muted-foreground">
+                                    Which team are you scoring for? This determines which side your events default to.
+                                    You can change this later from the bottom bar.
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        session.setTeamScope('white');
+                                        setScopeSelectorVisible(false);
+                                    }}
+                                    className="group flex flex-col items-center gap-3 rounded-xl border-2 border-border bg-card px-6 py-6 shadow-sm transition hover:border-foreground/30 hover:shadow-md"
+                                >
+                                    <div className="flex size-14 items-center justify-center rounded-full bg-team-white ring-2 ring-border">
+                                        <span className="text-lg font-bold text-team-white-foreground">W</span>
+                                    </div>
+                                    <div>
+                                        <div className="text-lg font-semibold">White</div>
+                                        <div className="text-xs text-muted-foreground">Score for the white team</div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        session.setTeamScope('blue');
+                                        setScopeSelectorVisible(false);
+                                    }}
+                                    className="group flex flex-col items-center gap-3 rounded-xl border-2 border-border bg-card px-6 py-6 shadow-sm transition hover:border-team-blue/50 hover:shadow-md"
+                                >
+                                    <div className="flex size-14 items-center justify-center rounded-full bg-team-blue">
+                                        <span className="text-lg font-bold text-team-blue-foreground">B</span>
+                                    </div>
+                                    <div>
+                                        <div className="text-lg font-semibold">Blue</div>
+                                        <div className="text-xs text-muted-foreground">Score for the blue team</div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        session.setTeamScope(null);
+                                        setScopeSelectorVisible(false);
+                                    }}
+                                    className="group flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-border bg-card px-6 py-6 shadow-sm transition hover:border-foreground/30 hover:shadow-md"
+                                >
+                                    <div className="flex size-14 items-center justify-center rounded-full bg-muted">
+                                        <span className="text-lg font-bold text-muted-foreground">N</span>
+                                    </div>
+                                    <div>
+                                        <div className="text-lg font-semibold">Neutral</div>
+                                        <div className="text-xs text-muted-foreground">Score for both teams</div>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <p className="text-xs text-muted-foreground">
+                                Tip: Use keyboard shortcuts for fast scoring — press <kbd className="rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px]">?</kbd> during a match to see all hotkeys.
                             </p>
-                            <TeamScopeSelector
-                                value={session.teamScope}
-                                onChange={(scope) => {
-                                    session.setTeamScope(scope);
-                                    setScopeSelectorVisible(false);
-                                }}
-                            />
                         </div>
                     </div>
                 )}

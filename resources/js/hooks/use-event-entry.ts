@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 
-import type { EventEntryState, EventEntryStep, EventType, GameState, RosterEntry, TeamSide } from '@/types';
+import type { EventEntryState, EventType, GameState, RosterEntry, TeamSide } from '@/types';
 
 type EventEntryAction =
     | { type: 'START_EVENT'; eventType: EventType }
@@ -192,6 +192,7 @@ export function useEventEntry(
 ): UseEventEntryReturn {
     const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
     const onEventAcceptedRef = useRef(onEventAccepted);
+    // eslint-disable-next-line react-hooks/refs -- stable ref for callback in effect
     onEventAcceptedRef.current = onEventAccepted;
 
     const resolvePlayerName = useCallback(
@@ -337,6 +338,7 @@ export function useEventEntry(
 
     // Auto-submit: when the state machine reaches awaiting_confirm, fire immediately
     const confirmRef = useRef(confirm);
+    // eslint-disable-next-line react-hooks/refs -- stable ref for callback in effect
     confirmRef.current = confirm;
 
     useEffect(() => {

@@ -13,6 +13,5 @@ export { ShootoutPanel } from './shootout-panel';
 export { StepIndicator } from './step-indicator';
 export { SubstitutionPanel } from './substitution-panel';
 export { SyncIndicator } from './sync-indicator';
-export { TeamScopeSelector } from './team-scope-selector';
 export { TimeoutsIndicator } from './timeouts-indicator';
 export { TimingCorrectionModal } from './timing-correction-modal';

@@ -1,4 +1,5 @@
-import { type DBSchema, type IDBPDatabase, openDB } from 'idb';
+import type { DBSchema, IDBPDatabase } from 'idb';
+import { openDB } from 'idb';
 
 import type { QueuedEvent } from '@/types';
 

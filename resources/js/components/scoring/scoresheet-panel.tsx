@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
 
+import { Button } from '@/components/ui/button';
+import type { ExclusionTimerEntry } from '@/hooks/use-exclusion-timers';
 import { formatShortClock } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 
 import type { EventType, GameState, MatchEvent, RosterEntry, UUID } from '@/types';
-import type { ExclusionTimerEntry } from '@/hooks/use-exclusion-timers';
 
 type Props = {
     homeRoster: RosterEntry[];
@@ -168,6 +168,7 @@ function TeamSection({
     selectedCap,
     onSelectCap,
     onPlayerAction,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     onTeamAction,
     onToggleInWater,
 }: {

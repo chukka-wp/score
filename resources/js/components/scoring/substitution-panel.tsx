@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -9,6 +8,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 
 import type { RosterEntry } from '@/types';
 
@@ -28,6 +28,7 @@ export function SubstitutionPanel({ roster, team, inWaterIds, maxInWater, open, 
     // Sync local state whenever dialog opens
     useEffect(() => {
         if (open) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setLocalInWater(new Set(inWaterIds));
         }
     }, [open, inWaterIds]);

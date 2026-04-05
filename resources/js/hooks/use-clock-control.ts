@@ -27,13 +27,15 @@ export function useClockControl(
     const [isPossessionPaused, setIsPossessionPaused] = useState(false);
     const [periodClock, setPeriodClock] = useState(gameState.period_clock_seconds);
     const [possessionClock, setPossessionClock] = useState(gameState.possession_clock_seconds);
-    const lastTickRef = useRef(performance.now());
+    const lastTickRef = useRef(0);
 
     // Sync from server state when it changes
+    /* eslint-disable react-hooks/set-state-in-effect */
     useEffect(() => {
         setPeriodClock(gameState.period_clock_seconds);
         setPossessionClock(gameState.possession_clock_seconds);
     }, [gameState.period_clock_seconds, gameState.possession_clock_seconds]);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     // Tick clocks down when running
     useEffect(() => {

@@ -51,6 +51,7 @@ export function CommandInput({ entryState, playerPreview }: Props) {
         prevStepRef.current = step;
 
         if (wasActive && step === 'idle') {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setFlash(true);
             const timer = setTimeout(() => setFlash(false), 400);
 
