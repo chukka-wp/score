@@ -109,6 +109,8 @@ Route::prefix('admin')->middleware('manager')->group(function () {
 // Scorer entry + live scoring
 // ──────────────────────────────────────────────────────────
 
+Route::get('/score', [ScorerAuthController::class, 'create'])->name('scoring.code');
+Route::post('/score', [ScorerAuthController::class, 'storeCode'])->name('scoring.code.store');
 Route::get('/match/{match}', [ScorerAuthController::class, 'store'])->name('scoring.entry');
 Route::get('/match/{match}/score', [Scoring\MatchController::class, 'show'])
     ->middleware('scorer')

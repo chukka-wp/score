@@ -311,6 +311,13 @@ class CloudApiService
         );
     }
 
+    public function resolvesScorerCode(string $code): array
+    {
+        return $this->handleResponse(
+            $this->request()->get($this->url("/scorer/bootstrap/{$code}"))
+        );
+    }
+
     // ──────────────────────────────────────────────────────────
     // Internal
     // ──────────────────────────────────────────────────────────
