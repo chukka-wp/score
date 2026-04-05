@@ -30,7 +30,7 @@ class ScorerAuthController extends Controller
         ]);
 
         try {
-            $result = $this->cloudApi->resolvesScorerCode($request->input('code'));
+            $result = $this->cloudApi->resolveScorerCode($request->input('code'));
         } catch (CloudApiException) {
             return back()->withErrors(['code' => 'Invalid or expired code.']);
         }
@@ -55,18 +55,19 @@ class ScorerAuthController extends Controller
     {
         $rawToken = $request->query('token');
 
-        if (! $rawToken && $this->tokenService->hasScorerSession()) {
+        if (! $rawToken && $this->tokenService->getScorerMatchId() === $match) {
             return redirect()->route('scoring.match', $match);
         }
 
         if (! $rawToken) {
-            abort(403, 'Missing scorer token.');
+            return redirect()->route('scoring.code');
         }
 
         try {
             $this->tokenService->storeScorerToken($match, $rawToken);
         } catch (CloudApiException) {
-            abort(403, 'Invalid or expired scorer token.');
+            return redirect()->route('scoring.code')
+                ->withErrors(['code' => 'Invalid or expired scorer link.']);
         }
 
         return redirect()->route('scoring.match', $match);

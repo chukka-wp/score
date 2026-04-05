@@ -16,13 +16,13 @@ class EnsureScorerAuth
     public function handle(Request $request, Closure $next): Response
     {
         if (! $this->tokenService->hasScorerSession()) {
-            abort(403, 'Scorer session expired or invalid.');
+            return redirect()->route('scoring.code');
         }
 
         $matchId = $request->route('match');
 
         if ($matchId && $matchId !== $this->tokenService->getScorerMatchId()) {
-            abort(403, 'Scorer token does not match this match.');
+            return redirect()->route('scoring.code');
         }
 
         return $next($request);

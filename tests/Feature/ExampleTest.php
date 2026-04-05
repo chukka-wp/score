@@ -1,5 +1,5 @@
 <?php
 
-test('home redirects to admin', function () {
-    $this->get(route('home'))->assertRedirect('/admin');
+test('home redirects to scorer code entry', function () {
+    $this->get(route('home'))->assertRedirect('/score');
 });
